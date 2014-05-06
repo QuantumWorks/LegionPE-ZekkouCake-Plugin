@@ -1,4 +1,4 @@
-name: LegionPE Delta
+name: LegionPE_Delta
 authors: [PEMapModder]
 main: pemapmodder\legionpe\hub\HubPlugin
 load: PostWorld

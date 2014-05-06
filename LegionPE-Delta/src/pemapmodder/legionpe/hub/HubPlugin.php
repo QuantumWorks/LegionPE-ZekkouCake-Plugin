@@ -48,19 +48,16 @@ class HubPlugin extends PluginBase implements Listener{
 	public $sessions = array();
 	protected $tmpPws = array();
 	public $dbs = array();
-	protected $teams = array();
+	public $teams = array();
 	public $config;
-	public function onPostLoad(){ // too lazy to move xD
+	public function onEnable(){
+		console(TextFormat::AQUA."Initializing Hub... ", false);
+		
 		$this->path = $this->getServer()->getDataPath()."Hub/";
 		@mkdir($this->path);
 		$this->playerPath = $this->path."players/";
 		@mkdir($this->playerPath);
-		console(TextFormat::GREEN."Hub has been loaded, directories created!");
-	}
-	public function onEnable(){
-		$this->onPostLoad();
-		console(TextFormat::AQUA."Initializing Hub... ", false);
-		$this->server = Server::getInstance();
+		
 		$this->initConfig();
 		$this->initPerms();
 		$this->initObjects();
@@ -497,6 +494,6 @@ class HubPlugin extends PluginBase implements Listener{
 	}
 	public static $instance = false;
 	public static function get(){ // get instance
-		return Server::getInstance()->getPluginManager()->getPlugin("LegionPE Delta");
+		return Server::getInstance()->getPluginManager()->getPlugin("LegionPE_Delta");
 	}
 }
