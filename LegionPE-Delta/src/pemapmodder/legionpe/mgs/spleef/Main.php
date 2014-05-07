@@ -43,7 +43,7 @@ class Main implements Listener, MgMain{
 		}
 	}
 	public function onInteract(Event $evt){
-		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName())
+		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
 			return;
 		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1)
 			$this->arenas[$sid]->onInteract($evt);
@@ -59,6 +59,7 @@ class Main implements Listener, MgMain{
 	public function join($SID, Player $player){
 		if(($reason = $this->arenas[$SID]->isJoinable()) === true){
 			$this->arenas[$SID]->join($player);
+			$this->sessions[$player->CID] = $SID;
 		}
 		else{
 			$player->sendMessage("You can't join this arena! Reason: $reason");
@@ -67,6 +68,7 @@ class Main implements Listener, MgMain{
 	public function quit($from, Player $player){
 		$isTeam = count(explode(".", Hub::get()->getChannel($player))) === 5;
 		Hub::get()->setChannel($player, $isTeam ? "legionpe.chat.spleef.".$this->hub->getDb($player)->get("team"):"legionpe.chat.spleef.public");
+		$this->sessions[$player->CID] = -1;
 	}
 	public function getChance(Player $player){
 		return $this->hub->config->get("spleef")["chances"][$this->hub->getRank($player)];
