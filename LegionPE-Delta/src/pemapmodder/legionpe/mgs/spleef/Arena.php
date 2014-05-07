@@ -126,7 +126,7 @@ class Arena extends PluginTask{
 	protected function start(){
 		$this->runtimeTicks = 20 * 60 * 3;
 		foreach($this->players as $p)
-			$this->lastLevels[$p->CID] = 0;
+			$this->lastLevels[$p->CID] = array(0, time());
 	}
 	protected function end($reason){
 		$this->broadcast("The match ended. Reason: $reason.");
@@ -147,15 +147,82 @@ class Arena extends PluginTask{
 		if(mt_rand(1, 100) <= Main::get()->getChance($p)){
 			$b->level->setBlock($b, Block::get(0));
 		}
-		$this->tmpLogs[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam, time()); // as lightweight as possible
+		$this->tmpLogs[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
 	}
 	public function onMove(Player $player){
-		$this->getLevel($player);
+		$new = $this->getLevel($player);
+		$time = time();
+		$old = $this->lastLevels[$player->CID];
+		$ol = $old[0];
+		if($ol !== $new){
+			$player->sendMessage("You have fallen into level $new!");
+			if($new - $ol > 1){
+				$player->sendMessage("C-C-Combo! You have fallen for two levels in ".($time - $old[1])." second(s)!");
+			}
+			if($time - $old[1] <= 2){
+				$this->stupidGuessHole($player, $new - $ol);
+			}
+		}
+		$this->lastLevels[$player->CID] = array($new, $time);
+		if($new !== $this->floors)
+			return;
+		$this->kick($player, "Falling out of the arena");
+		$player->sendMessage("You lost! -2 points to your team!");
+		HubPlugin::get()->getTeam($player)["points"] -= 2;
+		$this->checkPlayers();
+	}
+	protected function stupidGuessHole(Player $player, $levels){
+		$level = $this->getLevel($player);
+		for($I = 0; $I < $levels; $I++){
+			$x = (int) $player->x;
+			$y = $this->floorCyls[$level - 1 - $I]->centre->y;
+			$z = (int) $player->z;
+			$w = $this->topCentre->level;
+			$b = $w->getBlock(new Vector3($x, $y, $z));
+			if($b->getID() !== 0){
+				$b = $w->getBlock(new Vector3($x + 1, $y, $z));
+				if($b->getID() !== 0){
+					$b = $w->getBlock(new Vector3($x + 1, $y, $z + 1));
+					if($b->getID() !== 0){
+						$b = $w->getBlock(new Vector3($x, $y, $z + 1));
+						if($b->getID() !== 0)
+							continue;
+					}
+				}
+			}
+			$log = $this->tmpLog[$b->x.",".$b->y.",".$b->z];
+			$name = $log[0];
+			$team = $log[1];
+			$time = $log[2];
+			if(($diff = time() - $time) > 15)
+				continue;
+			$player->sendMessage("Our stupid spleef-hole guesser thinks that you fell in a hole mined by $name $diff second(s) ago!");
+			if($name === $player->username){
+				$player->sendMessage("Minecraft basic rules #1: Never mine directly below yourself.");
+				continue;
+			}
+			if($team === HubPlugin::get()->getTeam($player)->getTeam()){
+				$player->sendMessage("Your teammate betrayed you! xD forgive him though. He must have been careless.");
+				Player::get($name)->sendMessage("Hey, why did you dig a hole for your teammate ".$player->getDisplayName()." to fall into?");
+			}
+			else{
+				$player->sendMessage("You mined a hole to fall ".$player->getDisplayName().". 2 team points to you!");
+				HubPlugin::get()->getTeam($team)["points"] += 2;
+			}
+		}
 	}
 	protected function getLevel(Vector3 $vector){
 		$y = $vector->y;
+		$l = 0;
 		foreach($this->floorCyls as $cyl){
-			
+			if((int)$cyl->centre->y > $y)
+				$l++;
+			else break;
+		}
+		return $l;
+	}
+	protected function checkPlayers(){
+		foreach($this->players as $p){
 		}
 	}
 }
