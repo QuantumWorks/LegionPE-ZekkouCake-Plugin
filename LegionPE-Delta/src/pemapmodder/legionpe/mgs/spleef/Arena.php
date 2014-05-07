@@ -222,7 +222,6 @@ class Arena extends PluginTask{
 		return $l;
 	}
 	protected function checkPlayers(){
-		foreach($this->players as $p){
-		}
+		// ...
 	}
 }
