@@ -130,8 +130,14 @@ class Arena extends PluginTask{
 	}
 	protected function end($reason){
 		$this->broadcast("The match ended. Reason: $reason.");
+		foreach($this->players as $p)
+			$this->quit($p, "Match ended");
 	}
 	public function onInteract($event){
+		if($this->status === 0){
+			$event->setCancelled(true);
+			return false;
+		}
 		$p = $event->getPlayer();
 		$b = $event->getBlock();
 		foreach($this->floorCyls as $cs){
@@ -150,6 +156,9 @@ class Arena extends PluginTask{
 		$this->tmpLogs[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
 	}
 	public function onMove(Player $player){
+		if($this->status === 0){
+			return false;
+		}
 		$new = $this->getLevel($player);
 		$time = time();
 		$old = $this->lastLevels[$player->CID];
@@ -222,6 +231,15 @@ class Arena extends PluginTask{
 		return $l;
 	}
 	protected function checkPlayers(){
-		// ...
+		$team = array();
+		foreach($this->players as $p)
+			$team[] = HubPlugin::get()->getTeam($p)->getTeam();
+		if(max($team) === min($team) or count($this->players) === 1){
+			$this->broadcast("The match has ended!");
+			$pts = count($this->players) * 10;
+			$this->broadcast("Each of the remaining players earns your team 10 points!");
+			HubPlugin::get()->getTeam($team[0])["points"] += $pts;
+			$this->end("Only player(s) of one team left.");
+		}
 	}
 }

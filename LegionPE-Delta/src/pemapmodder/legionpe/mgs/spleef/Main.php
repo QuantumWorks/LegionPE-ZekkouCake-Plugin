@@ -37,16 +37,19 @@ class Main implements Listener, MgMain{
 			$pm->registerEvent("pocketmine\\event\\".$ev[0], $this, EventPriority::HIGH, new CallbackEventExe(array($this, $ev[1])), HubPlugin::get());
 	}
 	public function onMove(Event $evt){
-		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef"){
+		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef" and isset($this->sessions[$evt->getEntity()->CID])){
 			if(($sid = $this->sessions[$evt->getEntity()->CID]) !== -1)
-				$this->arenas[$sid]->onMove($evt->getEntity());
+				if($this->arenas[$sid]->onMove($evt->getEntity()) === false)
+					$evt->setCancelled(true);
 		}
 	}
 	public function onInteract(Event $evt){
 		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
 			return;
-		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1)
-			$this->arenas[$sid]->onInteract($evt);
+		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1){
+			if($this->arenas[$sid]->onInteract($evt) === false)
+				$evt->setCancelled(true);
+		}
 		else{
 			for($i = 1; $i <= 4; $i++){
 				if(Builder::signs($i)->isInside($evt->getBlock())){
