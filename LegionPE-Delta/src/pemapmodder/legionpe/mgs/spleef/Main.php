@@ -43,7 +43,8 @@ class Main implements Listener, MgMain{
 		}
 	}
 	public function onInteract(Event $evt){
-		if($evt->getPlayer()->level->getName() === Builder::spleef()->getName())
+		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName())
+			return;
 		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1)
 			$this->arenas[$sid]->onInteract($evt);
 		else{
