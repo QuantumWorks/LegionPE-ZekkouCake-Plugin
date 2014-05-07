@@ -15,21 +15,22 @@ use pocketmine\event\Listener;
 use pocketmine\level\Level;
 
 class Main implements MgMain, Listener{
-	public $status = 0;
-	public $players = array(0=>array(), 1=>array(), 2=>array(), 3=>array());
+	protected $current = null;
 	public function __construct(){
 		$this->hub = HubPlugin::get();
 		$this->server = Server::getInstance();
 		$this->initialize();
 	}
 	protected function initialize(){
-		// FileUtils::copy(RawLocs::basePath(), RawLocs::worldPath());
-		// $this->current = new Game($this->server->getLevel(RawLocs::worldName()));
-		// $this->server->registerEvent("pocketmine\\event\\server\\ServerStopEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "finalize")), $this->hub);
+		FileUtils::copy(RawLocs::basePath(), RawLocs::worldPath());
+		$this->current = new Game($this->server->getLevel(RawLocs::worldName()));
+		$this->server->registerEvent("pocketmine\\event\\server\\ServerStopEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "finalize")), $this->hub);
 	}
 	public function onJoinMg(Player $p){
+		$this->current->join($p);
 	}
 	public function onQuitMg(Player $p){
+		$this->current->quit($p);
 	}
 	public function getName(){
 		return "CTF";
@@ -38,26 +39,32 @@ class Main implements MgMain, Listener{
 		return HubPlugin::CTF;
 	}
 	public function getSpawn(Player $p, $TID){
-		// TODO
+		return RawLocs::spawn($TID);
 	}
 	public function getDefaultChatChannel(Player $p, $TID){
 		return "legionpe.chat.ctf.$TID";
 	}
 	public function isJoinable(){
-		// TODO
-		if(@$this->current instanceof Game){
+		if(isset($this->current) and $this->current instanceof Game){
 			return $this->current->join($p);
 		}
 		return "Not started";
 	}
 	public function finalize(){
-		@$this->current->finalize("server stop");
+		if(isset($this->current) and $this->current instanceof Game)
+			$this->current->finalize("server stop");
+	}
+	public function getGame(){
+		return $this->current;
+	}
+	public function endGame(){
+		$this->current = null;
 	}
 	public static $ctf = false;
 	public static function get(){
-		return self::$ctf;
+		return HubPlugin::get()->statics[get_class()];
 	}
 	public static function init(){
-		self::$ctf = new self();
+		HubPlugin::get()->statics[get_class()] = new static();
 	}
 }
