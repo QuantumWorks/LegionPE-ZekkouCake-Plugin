@@ -1,5 +1,7 @@
 <?php
+
 namespace pemapmodder\legionpe\mgs\pk;
+
 use pemapmodder\legionpe\hub\HubPlugin;
 use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
@@ -111,9 +113,9 @@ class Parkour implements CmdExe, Listener, MgMain{
 	}
 	public static $i = false;
 	public static function get(){
-		return self::$i;
+		return HubPlugin::get()->statics[get_class()];
 	}
 	public static function init(){
-		self::$i = new self();
+		HubPlugin::get()->statics[get_class()] = new static();
 	}
 }

@@ -211,11 +211,10 @@ class Pvp implements CmdExe, Listener{
 			$player->setArmorSlot($slot, Item::get($armor));
 		}
 	}
-	public static $inst = false;
 	public static function init(){
-		self::$inst = new self();
+		HubPlugin::get()->statics[get_class()] = new static();
 	}
 	public static function get(){
-		return self::$inst;
+		return HubPlugin::get()->statics[get_class()];
 	}
 }

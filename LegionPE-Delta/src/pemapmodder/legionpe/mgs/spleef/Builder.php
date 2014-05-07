@@ -11,11 +11,12 @@ use pemapmodder\utils\spaces\CylinderSpace as CS;
 use pocketmine\block\Block;
 
 class Builder extends RawLocs{
-	public static function build(Position $centre, $radius, Block $block, $floors, $height, $players, Block $pfloor, Block $wall, Block $ceil){
+	public static function build(Position $centre, $radius, Block $block, $floors, $height, $players, Block $pfloor, Block $wall, Block $ceil, &$floors = array()){
 		for($i = 0; $i < $floors; $i++){
 			$c = $centre;
 			$cs = new CS(CS::Y, $c->subtract(0, $height * $i), $radius, 1);
 			$cs->setBlocks($block);
+			$floors[] = $cs;
 		}
 		$preps = array();
 		for($j = 0; $j < $players; $j++){

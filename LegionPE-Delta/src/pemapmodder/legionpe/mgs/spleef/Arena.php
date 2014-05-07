@@ -12,12 +12,14 @@ use pocketmine\Server;
 use pocketmine\block\Block;
 use pocketmine\level\Level;
 use pocketmine\level\Position;
+use pocketmine\math\Vector3;
 
 class Arena extends PluginTask{
 	public $hub, $id, $centre, $radius, $height, $floors;
 	protected $gfloor, $pfloor, $pwall, $pceil;
 	protected $prestartTicks = -1, $scheduleTicks = -1, $runtimeTicks = -1;
 	public $status = 0, $players = array(), $preps;
+	protected $tmpLog = array(), $lastLevels = array(), $floorCyls = array();
 	public function __construct($id, Position $topCentre, $radius, $height, $floors, $players,
 			Block $floor, Block $pfloor, Block $pwall, Block $pceil){
 		$this->hub = HubPlugin::get();
@@ -37,6 +39,7 @@ class Arena extends PluginTask{
 		$this->refresh();
 	}
 	protected function refresh(){
+		$this->tmpLog = array();
 		$this->players = array();
 		$this->build($this->pcnt);
 	}
@@ -69,7 +72,8 @@ class Arena extends PluginTask{
 		return count($this->preps);
 	}
 	protected function build($cnt){
-		$this->preps = Builder::build($this->centre, $this->radius, $this->gfloor, $this->floors, $this->height, $cnt, $this->pfloor, $this->pwall, $this->pceil);
+		$this->preps = Builder::build($this->centre, $this->radius, $this->gfloor, $this->floors, $this->height, $cnt, $this->pfloor, $this->pwall, $this->pceil, $floors);
+		$this->floorCyls = $floors;
 	}
 	public function join(Player $player){
 		if(!$this->isJoinable())
@@ -121,10 +125,37 @@ class Arena extends PluginTask{
 	}
 	protected function start(){
 		$this->runtimeTicks = 20 * 60 * 3;
+		foreach($this->players as $p)
+			$this->lastLevels[$p->CID] = 0;
 	}
 	protected function end($reason){
 		$this->broadcast("The match ended. Reason: $reason.");
 	}
 	public function onInteract($event){
+		$p = $event->getPlayer();
+		$b = $event->getBlock();
+		foreach($this->floorCyls as $cs){
+			if($cs->isInside($b)){
+				$yes = true;
+				break;
+			}
+		}
+		if(!isset($yes)){
+			$event->setCancelled(true);
+			return;
+		}
+		if(mt_rand(1, 100) <= Main::get()->getChance($p)){
+			$b->level->setBlock($b, Block::get(0));
+		}
+		$this->tmpLogs[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam, time()); // as lightweight as possible
+	}
+	public function onMove(Player $player){
+		$this->getLevel($player);
+	}
+	protected function getLevel(Vector3 $vector){
+		$y = $vector->y;
+		foreach($this->floorCyls as $cyl){
+			
+		}
 	}
 }

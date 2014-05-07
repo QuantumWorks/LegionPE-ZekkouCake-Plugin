@@ -31,7 +31,6 @@ use pocketmine\utils\TextFormat;
 
 class HubPlugin extends PluginBase implements Listener{
 	const CURRENT_VERSION = 0;
-
 	const V_INITIAL = 0;
 
 	const REGISTER	= 0b00010;
@@ -45,6 +44,7 @@ class HubPlugin extends PluginBase implements Listener{
 	const LOGIN		= 0b11000;
 	const LOGIN_MAX	= 0b11111;
 
+	public $statics = array();
 	public $sessions = array();
 	protected $tmpPws = array();
 	public $dbs = array();

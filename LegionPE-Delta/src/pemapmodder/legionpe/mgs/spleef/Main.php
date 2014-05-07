@@ -39,7 +39,7 @@ class Main implements Listener, MgMain{
 	public function onMove(Event $evt){
 		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef"){
 			if(($sid = $this->sessions[$evt->getEntity()->CID]) !== -1)
-				$this->arenas[$sid]->onMove($evt);
+				$this->arenas[$sid]->onMove($evt->getEntity());
 		}
 	}
 	public function onInteract(Event $evt){
@@ -103,9 +103,9 @@ class Main implements Listener, MgMain{
 	}
 	public static $instance = false;
 	public static function get(){
-		return self::$instance;
+		return HubPlugin::get()->statics[get_class()];
 	}
 	public static function init(){
-		self::$instance = new self();
+		HubPlugin::get()->statics[get_class()] = new static();
 	}
 }

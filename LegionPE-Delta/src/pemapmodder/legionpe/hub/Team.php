@@ -10,7 +10,7 @@ use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\tile\Tile;
 
-class Team{
+class Team implements \ArrayAccess{
 	// static
 	public static function addPoints($i, $pts){
 		self::get($i)->config["points"] += $pts;
