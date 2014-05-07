@@ -28,7 +28,7 @@ abstract class RawLocs{
 		$z = self::teamScoreBarZ();
 		$maxLength = abs($z[0] - $z[1]);
 		$length = (int) ($maxLength / 100 * $percentage);
-		console(class_exists("pemapmodder\\utils\\spaces\\CuboidSpace", true) ? (Font::GREEN."CuboidSpace found"):(Font::RED."CuboidSpace Not found"));
+		// console(class_exists("pemapmodder\\utils\\spaces\\CuboidSpace", true) ? (Font::GREEN."CuboidSpace found"):(Font::RED."CuboidSpace Not found"));
 		return new MySpace(
 			new Vector3(self::teamScoreBarX($team), self::teamScoreBarY()[0], min($z)),
 			new Vector3(self::teamScoreBarX($team), self::teamScoreBarY()[1], min($z) + $length),

@@ -8,6 +8,7 @@ use pemapmodder\utils\CallbackPluginTask;
 
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\block\Block;
 use pocketmine\tile\Tile;
 
 class Team implements \ArrayAccess{
