@@ -8,6 +8,7 @@ use pemapmodder\legionpe\mgs\MgMain;
 use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Parkour;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
+use pempamodder\legionpe\mgs\ctf\Main as CTF;
 
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\CallbackPluginTask;
@@ -63,7 +64,21 @@ class Hub implements CmdExe, Listener{
 		$evt->setFormat($format);
 	}
 	public function onQuitCmd($issuer, array $args){
-		// TODO quit
+		$s = HubPlugin::get()->getSession($issuer);
+		switch($s){
+			case HubPlugin::PVP:
+				Pvp::get()->onQuitMg($issuer);
+				break;
+			case HubPlugin::PK:
+				Parkour::get()->onQuitMg($issuer);
+				break;
+			case HubPlugin::SPLEEF:
+				Spleef::get()->onQuitMg($issuer);
+				break;
+			case HubPlugin::CTF:
+				CTF::get()->onQuitMg($issuer);
+				break;
+		}
 		return true;
 	}
 	public function onQuit(Event $event){
@@ -129,7 +144,8 @@ class Hub implements CmdExe, Listener{
 			if(!$this->hub->getDb($p)->get("mute"))
 				$this->setChannel($p, $mg->getDefaultChatChannel($p, $TID));
 			$mg->onJoinMg($p);
-		}else{
+		}
+		else{
 			$p->sendMessage("{$mg->getName()} cannot be joined currently due to $reason!");
 			$p->teleport(RL::spawn());
 		}
