@@ -46,7 +46,8 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * CTF plugin
  * later... where is the world? Hello @SpyDuck?
 * Minigame inheritance
-* More core commands
+* Chat channels
+ * rewriting into read permissions and property-array-saved write channels
  * /chat, /mute and /unmute - chat channels
 
 ## Tasks TODO
