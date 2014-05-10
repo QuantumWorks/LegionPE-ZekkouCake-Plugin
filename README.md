@@ -27,13 +27,13 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * Prefix
 * Amai Beetroot data conversion
  * PvP items ans armor config conversion aborted and will not be done
-
-## Tasks in progress
 * PvP plugin
  * /kills [top]
  * /pvp
  * /class
 * Permissions
+
+## Tasks in progress
 * More core utils
  * What exactly are they? #_#
 * DIFF pocketmine entities?

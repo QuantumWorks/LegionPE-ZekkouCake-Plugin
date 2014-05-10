@@ -37,15 +37,19 @@ class Main implements Listener, MgMain{
 			$pm->registerEvent("pocketmine\\event\\".$ev[0], $this, EventPriority::HIGH, new CallbackEventExe(array($this, $ev[1])), HubPlugin::get());
 	}
 	public function onMove(Event $evt){
-		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef"){
+		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef" and isset($this->sessions[$evt->getEntity()->CID])){
 			if(($sid = $this->sessions[$evt->getEntity()->CID]) !== -1)
-				$this->arenas[$sid]->onMove($evt);
+				if($this->arenas[$sid]->onMove($evt->getEntity()) === false)
+					$evt->setCancelled(true);
 		}
 	}
 	public function onInteract(Event $evt){
-		if($evt->getPlayer()->level->getName() === Builder::spleef()->getName())
-		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1)
-			$this->arenas[$sid]->onInteract($evt);
+		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
+			return;
+		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1){
+			if($this->arenas[$sid]->onInteract($evt) === false)
+				$evt->setCancelled(true);
+		}
 		else{
 			for($i = 1; $i <= 4; $i++){
 				if(Builder::signs($i)->isInside($evt->getBlock())){
@@ -58,6 +62,7 @@ class Main implements Listener, MgMain{
 	public function join($SID, Player $player){
 		if(($reason = $this->arenas[$SID]->isJoinable()) === true){
 			$this->arenas[$SID]->join($player);
+			$this->sessions[$player->CID] = $SID;
 		}
 		else{
 			$player->sendMessage("You can't join this arena! Reason: $reason");
@@ -66,6 +71,7 @@ class Main implements Listener, MgMain{
 	public function quit($from, Player $player){
 		$isTeam = count(explode(".", Hub::get()->getChannel($player))) === 5;
 		Hub::get()->setChannel($player, $isTeam ? "legionpe.chat.spleef.".$this->hub->getDb($player)->get("team"):"legionpe.chat.spleef.public");
+		$this->sessions[$player->CID] = -1;
 	}
 	public function getChance(Player $player){
 		return $this->hub->config->get("spleef")["chances"][$this->hub->getRank($player)];
@@ -100,9 +106,9 @@ class Main implements Listener, MgMain{
 	}
 	public static $instance = false;
 	public static function get(){
-		return self::$instance;
+		return HubPlugin::get()->statics[get_class()];
 	}
 	public static function init(){
-		self::$instance = new self();
+		HubPlugin::get()->statics[get_class()] = new static();
 	}
 }

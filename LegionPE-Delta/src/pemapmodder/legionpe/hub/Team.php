@@ -8,9 +8,10 @@ use pemapmodder\utils\CallbackPluginTask;
 
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\block\Block;
 use pocketmine\tile\Tile;
 
-class Team{
+class Team implements \ArrayAccess{
 	// static
 	public static function addPoints($i, $pts){
 		self::get($i)->config["points"] += $pts;
@@ -22,6 +23,7 @@ class Team{
 			trigger_error("Unexpected argument 1 (".print_r($i, true).") passed to ".get_class()."::evalI($i)", E_USER_ERROR);
 			return;
 		}
+		return $i;
 	}
 	public static function getAll(){
 		$r = array();
