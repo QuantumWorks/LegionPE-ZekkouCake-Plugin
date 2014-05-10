@@ -26,22 +26,32 @@ use pocketmine\event\player\PlayerChatEvent;
 class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
+	protected $writePA = array();
+	protected $mutePA = array();
+	protected $pchannel = array();
 	protected $channels = array();
-	private $defaultChannels = array(
-		"legionpe.chat.general", // This format familiar? Yes, I wanted to make them permissions but ended up using them purely as strings
-		"legionpe.chat.mute.<CID>",
-		"legionpe.chat.team.<TID>",
-		"legionpe.chat.pvp.public",
-		"legionpe.chat.pvp.<TID>",
-		"legionpe.chat.pk.public",
-		"legionpe.chat.pk.<TID>",
-		"legionpe.chat.ctf.public",
-		"legionpe.chat.ctf.<TID>",
-		"legionpe.chat.spleef.public",
-		"legionpe.chat.spleef.<TID>",
-		"legionpe.chat.spleef.<SID>.<TID>",
-		"legionpe.chat.spleef.<SID>");
+	public static function defaultChannels(){
+		$r = explode(", ", "legionpe.chat.general, legionpe.chat.mandatory, legionpe.chat.team.TID, legionpe.chat.pvp.public, legionpe.chat.pvp.TID, legionpe.chat.pk.public, legionpe.chat.pk.TID, legionpe.chat.ctf.public, legionpe.chat.ctf.TID, legionpe.chat.spleef.public, legionpe.chat.spleef.TID, legionpe.chat.spleef.SID, legionpe.chat.spleef.SID.TID");
+		while(strpos(implode(",", $r), "ID) !== false){
+		$out = array();
+		foreach($r as $k => $v){
+			if(strpos($v, "ID") === false){
+				$out[] = $v;
+				continue;
+			}
+			for($i = 0; $i < 4; $i++){
+				$out[] = substr(strstr($v, "ID", true), 0, -1).$i.strstr($v, "ID);
+			}
+		}
+		$r = $out;
+		}
+		return $r;
+	}
 	public function __construct(){
+		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), Server::getInstance()->getPluginManager()->getPermission("legionpe"));
+		foreach(static::defaultChannels() as $channel){
+			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
+		}
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();
 		$pmgr = $this->server->getPluginManager();
@@ -56,8 +66,12 @@ class Hub implements CmdExe, Listener{
 		$pfxs["team"] = Team::get(HubPlugin::get()->getDb($p)->get("team"))["name"];
 		$rec = array();
 		foreach($evt->getRecipients() as $r){
-			if($this->getChannel($r) === $this->getChannel($p) or $this->getChannel($p) === "legionpe.chat.mandatory")
+			$chan = $this->pchannels[$p->CID];
+			if($r->hasPermission($chan.".read")){
 				$rec[] = $r;
+				break;
+			}
+			}
 		}
 		$evt->setRecipients($rec);
 		$format = $this->getPrefixes($p)."%s: %s";
@@ -151,11 +165,11 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function setChannel(Player $player, $channel = "legionpe.chat.general"){
-		$this->channels[$player->CID] = $channel;
-		$this->hub->getDb($player)->get($player)->set("last-channel", $channel);
+		$this->pchannels[$player->CID] = $channel;
+		// $this->hub->getDb($player)->get($player)->set("last-channel", $channel);
 	}
 	public function getChannel(Player $player){
-		return $this->channels[$player->CID];
+		return $this->pchannels[$player->CID];
 	}
 	public function onPreCmd(Event $event){
 		$p = $event->getPlayer();
@@ -232,7 +246,7 @@ class Hub implements CmdExe, Listener{
 		}
 		return false;
 	}
-	public function hasChannelPermission($s, &$ch, Issuer $player){
+	/*public function hasChannelPermission($s, &$ch, Issuer $player){
 		if(!($player instanceof Player)){
 			return true;
 		}
@@ -311,8 +325,8 @@ class Hub implements CmdExe, Listener{
 			default:
 				return false;
 		}
-	}
-	protected function getDefaultChannel(Player $player){
+	}*/
+	/*protected function getDefaultChannel(Player $player){
 		$t = $this->hub->getDb($player)->get("team");
 		switch($this->hub->getSession($player)){
 			case HubPlugin::HUB:
@@ -332,7 +346,7 @@ class Hub implements CmdExe, Listener{
 		}
 		$c = "pemapmodder\\legionpe\\mgs\\$c";
 		return $c::get()->getDefaultChatChannel($player, $t);
-	}
+	}*/
 	public static $inst = false;
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
