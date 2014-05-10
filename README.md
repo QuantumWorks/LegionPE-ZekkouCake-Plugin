@@ -55,14 +55,17 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 ## Tasks low-priority/optional TODO
 * Build and Guess (from Draw stuffs from MCPC)
  * Better name?
+* Turn chat channels into permissions in the format:
+ * legionpe.chat.general.receive|send
 
 ===
 # Difficulties
 * PocketMine updates
  * entities not ready
  * events for entities death and hurt
+ * affect debugging
 * Raw locations
- * minigame coords
+ * CTF. Hello where is @SpyDuck?
 
 ===
 # Debugging
@@ -70,13 +73,12 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 ## Items
 (sorted by priorities)
 
-* Syntax errors
 * Multiplayer bugs
- * Chat channels ***
+ * Chat channels ★★★
 * Typos
 
 ## Done
-* None of course :(
+* Fixed syntax errors :)
 
 # Permissions
 LegoinPE:
