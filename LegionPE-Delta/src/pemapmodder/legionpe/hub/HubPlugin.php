@@ -50,27 +50,43 @@ class HubPlugin extends PluginBase implements Listener{
 	public $dbs = array();
 	public $teams = array();
 	public $config;
+	protected $disableListeners = array();
 	public function onEnable(){
-		console(TextFormat::AQUA."Initializing Hub... ", false);
-		
+		console(TextFormat::AQUA."Initializing Hub", false);
+		$time = microtime(true);
 		$this->path = $this->getServer()->getDataPath()."Hub/";
 		@mkdir($this->path);
 		$this->playerPath = $this->path."players/";
 		@mkdir($this->playerPath);
-		
+		echo ".";
 		$this->initConfig();
+		echo ".";
 		$this->initPerms();
+		echo ".";
 		$this->initObjects();
+		echo ".";
 		$this->registerHandles();
+		echo ".";
 		$this->initCmds();
+		echo ".";
 		$this->initRanks();
-		echo TextFormat::toANSI(TextFormat::GREEN."Done!").PHP_EOL;
+		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
 	}
 	public function onDisable(){
-		console(TextFormat::AQUA."Finalizing Hub... ", false);
+		console(TextFormat::AQUA."Finalizing Hub", false);
+		$time = microtime(true);
 		$this->config->save();
-		echo TextFormat::toANSI(TextFormat::GREEN."Done!");
+		foreach($this->disableListeners as $l){
+			echo ".";
+			call_user_func($l);
+		}
+		$time = microtime(true) - $time;
+		$time *= 1000;
+		echo TextFormat::toANSI(TextFormat::GREEN." Done! ($time ms)".TextFormat::RESET);
 		echo PHP_EOL;
+	}
+	public function addDisableListener(callable $callback){
+		$this->disableListeners[] = $callback;
 	}
 	protected function initObjects(){ // initialize objects: Team, Hub, other minigames
 		Hub::init();

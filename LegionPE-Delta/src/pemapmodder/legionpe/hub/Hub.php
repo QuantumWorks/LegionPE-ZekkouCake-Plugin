@@ -22,6 +22,8 @@ use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\permission\DefaultPermissions as DP;
+use pocketmine\permission\Permission as Perm;
 
 class Hub implements CmdExe, Listener{
 	public $server;
@@ -31,34 +33,58 @@ class Hub implements CmdExe, Listener{
 	protected $pchannel = array();
 	protected $channels = array();
 	public static function defaultChannels(){
-		$r = explode(", ", "legionpe.chat.general, legionpe.chat.mandatory, legionpe.chat.team.TID, legionpe.chat.pvp.public, legionpe.chat.pvp.TID, legionpe.chat.pk.public, legionpe.chat.pk.TID, legionpe.chat.ctf.public, legionpe.chat.ctf.TID, legionpe.chat.spleef.public, legionpe.chat.spleef.TID, legionpe.chat.spleef.SID, legionpe.chat.spleef.SID.TID");
-		while(strpos(implode(",", $r), "ID") !== false){
-			$out = array();
-			foreach($r as $k => $v){
-				if(strpos($v, "ID") === false){
-					$out[] = $v;
-					continue;
-				}
-				for($i = 0; $i < 4; $i++){
-					$out[] = substr(strstr($v, "ID", true), 0, -1).$i.strstr($v, "ID");
-				}
+		$r = array(
+			"legionpe.chat.general",
+			"legionpe.chat.mandatory",
+			"legionpe.chat.team.TID",
+			"legionpe.chat.pvp.public",
+			"legionpe.chat.pvp.TID",
+			"legionpe.chat.pk.public",
+			"legionpe.chat.pk.TID",
+			"legionpe.chat.ctf.public",
+			"legionpe.chat.ctf.TID",
+			"legionpe.chat.spleef.public",
+			"legionpe.chat.spleef.TID",
+			"legionpe.chat.spleef.SID",
+			"legionpe.chat.spleef.SID.TID",
+		);
+		$out = array();
+		foreach($r as $ch){
+			if(strpos($ch, "SID") === false){
+				$out[] = $ch;
+				continue;
 			}
-			$r = $out;
+			for($i = 0; $i < 4; $i++){
+				$out[] = str_replace("TID", "$i", $ch);
+			}
 		}
-		return $r;
+		$r = $out;
+		$out = array();
+		foreach($r as $ch){
+			if(strpos($ch, "TID") === false){
+				$out[] = $ch;
+				continue;
+			}
+			for($i = 0; $i < 4; $i++){
+				$out[] = str_replace("TID", "$i", $ch);
+			}
+		}
+		// var_export($out);
+		return $out;
 	}
 	public function __construct(){
-		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), Server::getInstance()->getPluginManager()->getPermission("legionpe"));
+		$this->server = Server::getInstance();
+		$this->hub = HubPlugin::get();
+		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), $this->server->getPluginManager()->getPermission("legionpe"));
 		foreach(static::defaultChannels() as $channel){
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
-		$this->server = Server::getInstance();
-		$this->hub = HubPlugin::get();
 		$pmgr = $this->server->getPluginManager();
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::LOW, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerChatEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onChat")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerQuitEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onQuit")), HubPlugin::get());
+		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerJoinEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onJoin")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerCommandPreprocessEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onPreCmd")), HubPlugin::get());
 	}
 	public function onChat(Event $evt){
@@ -163,11 +189,22 @@ class Hub implements CmdExe, Listener{
 			$p->teleport(RL::spawn());
 		}
 	}
-	public function setChannel(Player $player, $channel = "legionpe.chat.general"){
+	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
+		$oldChannel = $this->pchannels[$player->CID];
 		$this->pchannels[$player->CID] = $channel;
+		if(!$writeOnly){
+			$this->readPA[$player->CID][$channel] = $player->addAttachment($channel.".read", true);
+		}
+		if(!$reserveOld){
+			$player->removeAttachment($this->readPA[$player->CID][$oldChannel]);
+			unset($this->readPA[$player->CID][$oldChannel]);
+		}
 	}
 	public function getChannel(Player $player){
 		return $this->pchannels[$player->CID];
+	}
+	public function onJoin(Event $event){
+		$event->getPlayer()->addAttachment($this->hub, "legionpe.chat.mandatory", true);
 	}
 	public function onPreCmd(Event $event){
 		$p = $event->getPlayer();
@@ -201,7 +238,7 @@ class Hub implements CmdExe, Listener{
 					case "mute":
 						$this->mutePA[$isr->CID] = array();
 						foreach(self::defaultChannels() as $channel){
-							$this->mutePA[$isr->CID][] = $isr->addAttachment("$channel.read", false);
+							$this->mutePA[$isr->CID][] = $isr->addAttachment($this->hub, "$channel.read", false);
 						}
 						break;
 					case "unmute":

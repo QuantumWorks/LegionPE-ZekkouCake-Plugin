@@ -2,7 +2,7 @@
 
 namespace pemapmodder\legionpe\mgs\ctf;
 
-use pocketmine\legionpe\hub\HubPlugin;
+use pemapmodder\legionpe\hub\HubPlugin;
 
 use pocketmine\Player;
 use pocketmine\Server;
