@@ -23,8 +23,8 @@ class Main implements MgMain, Listener{
 	}
 	protected function initialize(){
 		FileUtils::copy(RawLocs::basePath(), RawLocs::worldPath());
-		$this->current = new Game($this->server->getLevel(RawLocs::worldName()));
-		$this->server->registerEvent("pocketmine\\event\\server\\ServerStopEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "finalize")), $this->hub);
+		// $this->current = new Game($this->server->getLevel(RawLocs::worldName()));
+		$this->hub->addDisableListener(array($this, "finalize"));
 	}
 	public function onJoinMg(Player $p){
 		$this->current->join($p);
@@ -39,7 +39,7 @@ class Main implements MgMain, Listener{
 		return HubPlugin::CTF;
 	}
 	public function getSpawn(Player $p, $TID){
-		return RawLocs::spawn($TID);
+		return RawLocs::pSpawn($TID);
 	}
 	public function getDefaultChatChannel(Player $p, $TID){
 		return "legionpe.chat.ctf.$TID";

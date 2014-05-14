@@ -23,7 +23,7 @@ abstract class Rawlocs extends ParentClass{
 	public final static function world(){
 		return Server::getInstance()->getLevel(self::worldName());
 	}
-	public final static function spawn($tid){
+	public final static function pSpawn($tid){
 		switch($tid & 0b11){
 			case 1:
 				return new Pos(self::world());

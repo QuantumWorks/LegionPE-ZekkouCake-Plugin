@@ -22,6 +22,8 @@ use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\permission\DefaultPermissions as DP;
+use pocketmine\permission\Permission as Perm;
 
 class Hub implements CmdExe, Listener{
 	public $server;
@@ -31,34 +33,58 @@ class Hub implements CmdExe, Listener{
 	protected $pchannel = array();
 	protected $channels = array();
 	public static function defaultChannels(){
-		$r = explode(", ", "legionpe.chat.general, legionpe.chat.mandatory, legionpe.chat.team.TID, legionpe.chat.pvp.public, legionpe.chat.pvp.TID, legionpe.chat.pk.public, legionpe.chat.pk.TID, legionpe.chat.ctf.public, legionpe.chat.ctf.TID, legionpe.chat.spleef.public, legionpe.chat.spleef.TID, legionpe.chat.spleef.SID, legionpe.chat.spleef.SID.TID");
-		while(strpos(implode(",", $r), "ID) !== false){
+		$r = array(
+			"legionpe.chat.general",
+			"legionpe.chat.mandatory",
+			"legionpe.chat.team.TID",
+			"legionpe.chat.pvp.public",
+			"legionpe.chat.pvp.TID",
+			"legionpe.chat.pk.public",
+			"legionpe.chat.pk.TID",
+			"legionpe.chat.ctf.public",
+			"legionpe.chat.ctf.TID",
+			"legionpe.chat.spleef.public",
+			"legionpe.chat.spleef.TID",
+			"legionpe.chat.spleef.SID",
+			"legionpe.chat.spleef.SID.TID",
+		);
 		$out = array();
-		foreach($r as $k => $v){
-			if(strpos($v, "ID") === false){
-				$out[] = $v;
+		foreach($r as $ch){
+			if(strpos($ch, "SID") === false){
+				$out[] = $ch;
 				continue;
 			}
 			for($i = 0; $i < 4; $i++){
-				$out[] = substr(strstr($v, "ID", true), 0, -1).$i.strstr($v, "ID);
+				$out[] = str_replace("TID", "$i", $ch);
 			}
 		}
 		$r = $out;
+		$out = array();
+		foreach($r as $ch){
+			if(strpos($ch, "TID") === false){
+				$out[] = $ch;
+				continue;
+			}
+			for($i = 0; $i < 4; $i++){
+				$out[] = str_replace("TID", "$i", $ch);
+			}
 		}
-		return $r;
+		// var_export($out);
+		return $out;
 	}
 	public function __construct(){
-		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), Server::getInstance()->getPluginManager()->getPermission("legionpe"));
+		$this->server = Server::getInstance();
+		$this->hub = HubPlugin::get();
+		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), $this->server->getPluginManager()->getPermission("legionpe"));
 		foreach(static::defaultChannels() as $channel){
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
-		$this->server = Server::getInstance();
-		$this->hub = HubPlugin::get();
 		$pmgr = $this->server->getPluginManager();
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::LOW, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerChatEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onChat")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerQuitEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onQuit")), HubPlugin::get());
+		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerJoinEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onJoin")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerCommandPreprocessEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onPreCmd")), HubPlugin::get());
 	}
 	public function onChat(Event $evt){
@@ -70,7 +96,6 @@ class Hub implements CmdExe, Listener{
 			if($r->hasPermission($chan.".read")){
 				$rec[] = $r;
 				break;
-			}
 			}
 		}
 		$evt->setRecipients($rec);
@@ -103,9 +128,9 @@ class Hub implements CmdExe, Listener{
 		$prefix = "";
 		foreach(HubPlugin::getPrefixOrder() as $pfxType=>$filter){
 			if($pfxType === "team")
-				$pf = "".ucfirst(Team::get(HubPlugin::get()->getDb($player)->get("team"))["name"])."";
+				$pf = "{".ucfirst(Team::get(HubPlugin::get()->getDb($player)->get("team"))["name"])."}";
 			else $pf = ucfirst(HubPlugin::get()->getDb($player)->get("prefixes")[$pfxType]);
-			if(!$this->isFiltered($filter, $p->level->getName()) and strlen(\str_replace(" ", "", $pf)) > 0)
+			if(!$this->isFiltered($filter, $p->level->getName()) and strlen(str_replace(" ", "", $pf)) > 0)
 				$prefix .= "$pf|";
 		}
 		return $prefix;
@@ -164,12 +189,22 @@ class Hub implements CmdExe, Listener{
 			$p->teleport(RL::spawn());
 		}
 	}
-	public function setChannel(Player $player, $channel = "legionpe.chat.general"){
+	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
+		$oldChannel = $this->pchannels[$player->CID];
 		$this->pchannels[$player->CID] = $channel;
-		// $this->hub->getDb($player)->get($player)->set("last-channel", $channel);
+		if(!$writeOnly){
+			$this->readPA[$player->CID][$channel] = $player->addAttachment($channel.".read", true);
+		}
+		if(!$reserveOld){
+			$player->removeAttachment($this->readPA[$player->CID][$oldChannel]);
+			unset($this->readPA[$player->CID][$oldChannel]);
+		}
 	}
 	public function getChannel(Player $player){
 		return $this->pchannels[$player->CID];
+	}
+	public function onJoin(Event $event){
+		$event->getPlayer()->addAttachment($this->hub, "legionpe.chat.mandatory", true);
 	}
 	public function onPreCmd(Event $event){
 		$p = $event->getPlayer();
@@ -180,7 +215,7 @@ class Hub implements CmdExe, Listener{
 				$event->setCancelled(true);
 				foreach(Player::getAll() as $player){
 					if($this->getChannel($player) === $this->getChannel($p) or $this->getChannel($p) === "legionpe.chat.mandatory")
-						$player->sendMessage("★ {$this->getPrefixes($player)}{$player->getDisplayName()} ".implode(" ", $cmd));
+						$player->sendMessage("* {$this->getPrefixes($player)}{$player->getDisplayName()} ".implode(" ", $cmd));
 				}
 				break;
 			case "spawn":
@@ -192,6 +227,8 @@ class Hub implements CmdExe, Listener{
 	}
 	public function onCommand(Issuer $isr, Command $cmd, $lbl, array $args){
 		$output = "";
+		if(!($isr instanceof Player))
+			return "Please run this command in-game.";
 		switch($cmd->getName()){
 			case "mute":
 			case "unmute":
@@ -199,28 +236,26 @@ class Hub implements CmdExe, Listener{
 			case "chat":
 				switch($subcmd = array_shift($args)){
 					case "mute":
+						$this->mutePA[$isr->CID] = array();
+						foreach(self::defaultChannels() as $channel){
+							$this->mutePA[$isr->CID][] = $isr->addAttachment($this->hub, "$channel.read", false);
+						}
+						break;
 					case "unmute":
-						array_unshift($args, $subcmd);
+						while(count($this->mutePA[$isr->CID])){
+							$att = array_shift($this->mutePA[$isr->CID]);
+							$isr->removeAttachment($att);
+						}
+						break;
 					case "ch":
 						if(!$isr->hasPermission("legionpe.cmd.chat.ch"))
 							return "You don't have permission to use /chat ch";
 						if(isset($args[0])){
 							$ch = array_shift($args);
-							if($this->hasChannelPermission($this->hub->getSession($isr), $ch, $isr)){
-								$this->setChannel($isr, $ch);
+							if($isr->hasPermission($ch = $this->parseChannel($ch))){
+								return "Your chat channel has been set to \"$ch\"";
 							}
-							elseif($isr->hasPermission("legionpe.cmd.chat.ch.all")){
-								$copy = $ch;
-								if($this->proofreadChannelName($ch)){
-									if($copy !== "mute" and $copy !== "m")
-										$this->hub->getDb($isr)->set("mute", false);
-									$this->hub->getDb($isr)->save();
-									return "Typo detected in \"$ch\".";
-								}
-								$this->setChannel($isr, $ch); // absolute channel
-							}
-							else return "You don't have permission to create/join this chat channel";
-							return "Your chat channel has been set to \"$ch\"";
+							return "You don't have permission to create/join this chat channel";
 						}
 				}
 			case "help":
@@ -233,120 +268,6 @@ class Hub implements CmdExe, Listener{
 				return $output;
 		}
 	}
-	public function proofreadChannelName(&$ch){ // check if typo exists; not very safe, but at least a safeguard exists
-		$ch = strtolower($ch);
-		$tokens = explode(".", $ch);
-		if($tokens[0] !== "legionpe" or $tokens[1] !== "chat")
-			return true;
-		while(count($tokens) > 0){
-			$token = array_shift($tokens);
-			if(!in_array($token, array("legionpe", "pvp", "pk", "spleef", "ctf", "general", "chat", "public", "mute", "team")) and !is_numeric($token)){
-				return true;
-			}
-		}
-		return false;
-	}
-	/*public function hasChannelPermission($s, &$ch, Issuer $player){
-		if(!($player instanceof Player)){
-			return true;
-		}
-		if(strpos("mandatory", $ch) !== false){
-			return false;
-		}
-		$tid = $this->hub->getDb($player)->get("team");
-		switch($ch){
-			case "p":
-			case "public":
-				switch($s){
-					case HubPlugin::HUB:
-						$ch = "legionpe.chat.general";
-						return true;
-					case HubPlugin::PVP:
-						$ch = "leginope.chat.pvp.public";
-						return true;
-					case HubPlugin::PK:
-						$ch = "legionpe.chat.pk.public";
-						return true;
-					case HubPlugin::SPLEEF:
-						$ch = "legionpe.chat.spleef.public";
-						return true;
-					case HubPlugin::CTF:
-						$ch = "legionpe.chat.ctf.public";
-						return true;
-					default:
-						return false;
-				}
-			case "u":
-			case "unmute":
-				# $ch = $this->getDefaultChannel($player);
-				$ch = $this->hub->getDb($player)->get("last-channel");
-				return true;
-			case "m":
-			case "mute":
-				$this->hub->getDb($player)->set("mute", true);
-				$ch = "legionpe.chat.mute.".$player->CID;
-				return true;
-			case "t":
-			case "team":
-				switch($s){
-					case HubPlugin::HUB:
-						$ch = "legionpe.chat.team.$tid";
-						return true;
-					case HubPlugin::PVP:
-						$ch = "leginope.chat.pvp.$tid";
-						return true;
-					case HubPlugin::PK:
-						$ch = "legionpe.chat.pk.$tid";
-						return true;
-					case HubPlugin::SPLEEF:
-						$ch = "leginope.chat.spleef.$tid";
-						return true;
-					case HubPlugin::CTF:
-						$ch = "legionpe.chat.ctf.$tid";
-						return true;
-					default:
-						return false;
-				}
-			case "s":
-				$nt = true;
-			case "st":
-				if($s === HubPlugin::SPLEEF and ($sid = Spleef::getSession($player)) !== false){
-					$ch = "legionpe.chat.spleef.$sid";
-					if(!isset($nt))
-						$ch .= ".$tid";
-					return true;
-				}
-				return false;
-			case "g":
-			case "gen":
-			case "general":
-				$ch = "legionpe.chat.general";
-				return true;
-			default:
-				return false;
-		}
-	}*/
-	/*protected function getDefaultChannel(Player $player){
-		$t = $this->hub->getDb($player)->get("team");
-		switch($this->hub->getSession($player)){
-			case HubPlugin::HUB:
-				return "legionpe.chat.general";
-			case HubPlugin::PVP:
-				$c = "pvp\\Pvp";
-				break;
-			case HubPlugin::PK:
-				$c = "pk\\Parkour";
-				break;
-			case HubPlugin::SPLEEF:
-				$c = "spleef\\Main";
-			case HubPlugin::CTF:
-				$c = "ctf\\Main";
-			default:
-				return "legionpe.chat.mute.".$player->CID;
-		}
-		$c = "pemapmodder\\legionpe\\mgs\\$c";
-		return $c::get()->getDefaultChatChannel($player, $t);
-	}*/
 	public static $inst = false;
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();

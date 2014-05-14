@@ -17,8 +17,9 @@ class CuboidSpace extends Space{
 	 * @param Level $level the level of the Space.
 	 */
 	public function __construct(Vector3 $s, Vector3 $e, Level $level){
-		$this->rawStart=new Position($s->x, $s->y, $s->z, $level);
-		$this->rawEnd=new Position($e->x, $e->y, $e->z, $level);
+		$this->rawStart = new Position($s->x, $s->y, $s->z, $level);
+		$this->rawEnd = new Position($e->x, $e->y, $e->z, $level);
+		$this->level = $level;
 		$this->recook();
 	}
 	/**
@@ -28,9 +29,9 @@ class CuboidSpace extends Space{
 	 */
 	public function recook(){
 		$s=&$this->rawStart;
-		$e=&$thsi->rawEnd;
-		$this->cookedStart = new Position(min($s->x, $e->x), min($s->y, $e->y), min($s->z, $e->z), $level);
-		$this->cookedEnd = new Position(max($s->x, $e->x), max($s->y, $e->y), max($s->z, $e->z), $level);
+		$e=&$this->rawEnd;
+		$this->cookedStart = new Position(min($s->x, $e->x), min($s->y, $e->y), min($s->z, $e->z), $this->level);
+		$this->cookedEnd = new Position(max($s->x, $e->x), max($s->y, $e->y), max($s->z, $e->z), $this->level);
 		return $this;
 	}
 	// inherited functions
@@ -58,7 +59,7 @@ class CuboidSpace extends Space{
 		$this->recook();
 		$level = $this->rawEnd->level;
 		foreach($this->getBlockMap() as $v){
-			if(!$this->isIdentical($level->getBlock($v)->getID(), $block->getID(), true, true, true)){
+			if(!$this->isIdentical($level->getBlock($v), $block, true, true, true)){
 				$cnt++;
 				$level->setBlock($v, $block, false, false, true);
 			}
