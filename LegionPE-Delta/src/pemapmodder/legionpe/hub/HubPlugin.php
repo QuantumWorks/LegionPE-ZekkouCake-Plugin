@@ -29,6 +29,8 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 
+/**
+ * Responsible for player auth sessions, teams selection, databases, main commands, permissions, config files and events top+base backup handling
 class HubPlugin extends PluginBase implements Listener{
 	const CURRENT_VERSION = 0;
 	const V_INITIAL = 0;
@@ -449,12 +451,17 @@ class HubPlugin extends PluginBase implements Listener{
 	public final static function getPrefixOrder(){ // get the order of prefixes as well as filters
 		return array("rank"=>"all", "team"=>"all", "kitpvp"=>"pvp", "kitpvp-rank"=>"pvp", "kitpvp-kills"=>"pvp", "parkour"=>"pk");
 	}
-	protected function openDb($p){ // open and initialize the database of a player
-		@mkdir($path = $this->playerPath.substr(strtolower($p->getName()), 0, 1)."/");
-		$config = new Config($path.strtolower($p->getName()), Config::YAML, array(
+	public function logp(Player $p, $msg){
+		file_put_contents($this->playerPath.$p->getAddress().".log", $log. PHP_EOL);
+	}
+	protected function openDb(Player $p){ // open and initialize the database of a player
+		@touch($this->playerPath.$p->getAddress().".log");
+		$this->logp($p, "#Log file of player ".$p->getDisplayName()." and possibly other names with the same IP address: ".$p->getAddress());
+		$config = new Config($this->playerPath.strtolower($p->getName().".yml"), Config::YAML, array(
 	 	 	"config-version-never-edit-this" => self:: CURRENT_VERSION,
 			"pw-hash" => false, // I don't care whether they are first time or not, just care they registered or not
 			"ip-auth" => false,
+			"coins"=>200,
 			"prefixes" => array(
 				"kitpvp"=>"",
 				"kitpvp-kills"=>"",
@@ -464,7 +471,7 @@ class HubPlugin extends PluginBase implements Listener{
 			),
 			"kitpvp"=>array("kills"=>0, "deaths"=>0, "class"=>"fighter"),
 			"parkour"=>array(),
-			"spleef"=>array("wins"=>0, "unwonws"=>0),
+			"spleef"=>array("wins"=>0, "unwons"=>0),
 			"ctf"=>array(),
 			"team" => false,
 			"mute" => false
@@ -475,8 +482,8 @@ class HubPlugin extends PluginBase implements Listener{
 		$config->set("prefixes", $pfxs);
 		$config->save();
 		$path = $this->getServer()->getDataPath()."SKC-Rewrite/player-databases/".strtolower($p->getName()[0])."/{$p->getName()}.txt";
-		if(($yaml = @\file_get_contents($path)) !== false){
-			$data = \yaml_parse($yaml);
+		if(($yaml = @file_get_contents($path)) !== false){
+			$data = yaml_parse($yaml);
 			$i = $config->get("kitpvp");
 			$i["kills"] = $data["kills"];
 			$i["deaths"] = $data["deaths"];
