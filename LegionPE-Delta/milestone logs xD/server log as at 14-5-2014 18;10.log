@@ -1,0 +1,43 @@
+10:10:41 [INFO] Starting Minecraft: PE server version v0.8.1 alpha
+10:10:41 [INFO] Loading properties...
+10:10:41 [INFO] Starting Minecraft PE server on *:19132
+10:10:41 [INFO] This server is running PocketMine-MP version Alpha_1.4dev "絶好(Zekkou)ケーキ(Cake)" (API 1.0.0)
+10:10:41 [INFO] PocketMine-MP is distributed under the LGPL License
+10:10:41 [INFO] Loading DevTools v1.5.0
+10:10:41 [INFO] Loading MyPluginLoader v0
+10:10:41 [WARNING] Non-packaged plugin MyPluginLoader detected, do not use on production.
+10:10:41 [INFO] pemapmodder\plugintester\Main loaded!
+10:10:41 [INFO] Loading LegionPE_Delta v3
+10:10:41 [WARNING] Non-packaged plugin LegionPE_Delta detected, do not use on production.
+10:10:41 [INFO] Loading C:\coding\_New-API\plugins\LegionPE-Delta\LegionPE-Delta!
+10:10:41 [INFO] Enabling DevTools v1.5.0
+10:10:41 [ERROR] Could not load duplicate plugin 'MyPluginLoader': plugin exists
+10:10:41 [INFO] Loading DevTools v1.5.0
+10:10:41 [INFO] Loading MyPluginLoader v0
+10:10:41 [WARNING] Non-packaged plugin MyPluginLoader detected, do not use on production.
+10:10:41 [INFO] pemapmodder\plugintester\Main loaded!
+10:10:41 [INFO] Loading LegionPE_Delta v3
+10:10:41 [WARNING] Non-packaged plugin LegionPE_Delta detected, do not use on production.
+10:10:41 [INFO] Loading C:\coding\_New-API\plugins\LegionPE-Delta\LegionPE-Delta!
+10:10:41 [INFO] Registered folder plugin loader
+10:10:41 [INFO] Enabling MyPluginLoader v0
+10:10:41 [INFO] pemapmodder\plugintester\Main enabled!
+10:10:41 [INFO] Preparing level "world"
+10:10:41 [INFO] Enabling LegionPE_Delta v3
+10:10:41 [INFO] Initializing Hub...... Done! (40.00186920166 ms)
+10:10:41 [INFO] Starting GS4 status listener
+10:10:41 [INFO] Setting query port to 19132
+10:10:41 [INFO] Query running on 0.0.0.0:19132
+10:10:42 [INFO] Default game type: SURVIVAL
+10:10:42 [INFO] Done (0.993s)! For help, type "help" or "?"
+10:10:42 [INFO] Hub score bars have been updated.
+say This 40.00186920166 ms includes generating the config
+10:11:02 [INFO] [Server] This 40.00186920166 ms includes generating the config
+stop
+10:11:03 [INFO] CONSOLE: Stopping the server...
+10:11:03 [INFO] Disabling LegionPE_Delta v3
+10:11:03 [INFO] Finalizing Hub. Done! (0.99992752075195 ms)
+
+Fatal error: Call to a member function unregister() on a non-object in phar://C:/coding/_New-API/PocketMine-MP.phar/src/pocketmine/event/HandlerList.php on line 59
+Failed loading php_opcache.dll
+bin\php\php.exe: Segmentation fault
