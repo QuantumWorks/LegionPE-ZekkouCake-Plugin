@@ -4,3 +4,14 @@ api: [1.0.0]
 author: PEMapModder
 load: postworld
 main: pemapmodder\smg\Main
+permissions:
+  smg:
+    default: false
+    description: SMG full access
+    children:
+      smg.admin:
+        description: SMG admin access
+      smg.mod:
+        description: SMG moderator access (global)
+        smg.mod.sectional:
+          description: SMG moderator access (sectional)

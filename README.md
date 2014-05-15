@@ -49,6 +49,7 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * Chat channels
  * rewriting into read permissions and property-array-saved write channels
  * /chat, /mute and /unmute - chat channels
+* Coins!
 
 ## Tasks TODO
 * @_@ not debugging... but debugging of course...
@@ -76,6 +77,7 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 
 * Multiplayer bugs
  * Chat channels ★★★
+ * permissions ★★
 * Typos
 
 ## Done

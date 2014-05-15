@@ -25,6 +25,9 @@ use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\permission\DefaultPermissions as DP;
 use pocketmine\permission\Permission as Perm;
 
+/**
+ * Responsible for portals, chat and coins
+ */
 class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
@@ -267,6 +270,8 @@ class Hub implements CmdExe, Listener{
 				$output .= "/chat ch <channel> Join a chat channel";
 				return $output;
 		}
+	}
+	public function addCoins(){
 	}
 	public static $inst = false;
 	public static function init(){
