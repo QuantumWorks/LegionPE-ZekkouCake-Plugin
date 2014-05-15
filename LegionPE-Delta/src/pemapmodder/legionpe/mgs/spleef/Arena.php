@@ -217,7 +217,7 @@ class Arena extends PluginTask{
 			else{
 				$player->sendMessage("You mined a hole to fall ".$player->getDisplayName().". 2 team points to you!");
 				HubPlugin::get()->getTeam($team)["points"] += 2;
-				$this->hub->addCoins($player, 2, "awarded by stupid spleef hole guesser");
+				$this->hub->addCoins($player, 2, "being awarded by stupid spleef hole guesser");
 			}
 		}
 	}
