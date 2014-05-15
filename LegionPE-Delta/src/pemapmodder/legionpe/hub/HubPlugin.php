@@ -31,6 +31,7 @@ use pocketmine\utils\TextFormat;
 
 /**
  * Responsible for player auth sessions, teams selection, databases, main commands, permissions, config files and events top+base backup handling
+ */
 class HubPlugin extends PluginBase implements Listener{
 	const CURRENT_VERSION = 0;
 	const V_INITIAL = 0;
