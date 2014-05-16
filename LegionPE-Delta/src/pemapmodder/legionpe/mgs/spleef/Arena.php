@@ -166,7 +166,7 @@ class Arena extends PluginTask{
 		if($ol !== $new){
 			$player->sendMessage("You have fallen into level $new!");
 			if($new - $ol > 1){
-				$player->sendMessage("C-C-Combo! You have fallen for two levels in ".($time - $old[1])." second(s)!");
+				$player->sendMessage("C-C-Combo! You have fallen for multiple levels in ".($time - $old[1])." second(s)!");
 			}
 			if($time - $old[1] <= 2){
 				$this->stupidGuessHole($player, $new - $ol);
@@ -211,12 +211,13 @@ class Arena extends PluginTask{
 				continue;
 			}
 			if($team === HubPlugin::get()->getTeam($player)->getTeam()){
-				$player->sendMessage("Your teammate betrayed you! xD forgive him though. He must have been careless.");
+				$player->sendMessage("Your teammate betrayed you for this fall! xD forgive him though. Either he or you must have been careless.");
 				Player::get($name)->sendMessage("Hey, why did you dig a hole for your teammate ".$player->getDisplayName()." to fall into?");
 			}
 			else{
 				$player->sendMessage("You mined a hole to fall ".$player->getDisplayName().". 2 team points to you!");
 				HubPlugin::get()->getTeam($team)["points"] += 2;
+				$this->hub->addCoins($player, 2, "being awarded by stupid spleef hole guesser");
 			}
 		}
 	}
@@ -240,6 +241,16 @@ class Arena extends PluginTask{
 			$this->broadcast("Each of the remaining players earns your team 10 points!");
 			HubPlugin::get()->getTeam($team[0])["points"] += $pts;
 			$this->end("Only player(s) of one team left.");
+		}
+		$two = true;
+		foreach($team as $t){
+			if($t !== max($team) and $t !== min($team)){
+				$two = false;
+				break;
+			}
+		}
+		if($two){
+			$this->broadcast("Now it is the grand deathmatch between team ".Team::get(max($team))["name"]." and team ".Team::get(min($team))["name"]"!");
 		}
 	}
 }

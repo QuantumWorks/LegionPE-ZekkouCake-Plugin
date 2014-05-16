@@ -37,7 +37,7 @@ class Hub implements CmdExe, Listener{
 	protected $channels = array();
 	public static function defaultChannels(){
 		$r = array(
-			"legionpe.chat.general",
+			"legionpe.chat.public",
 			"legionpe.chat.mandatory",
 			"legionpe.chat.team.TID",
 			"legionpe.chat.pvp.public",
@@ -237,6 +237,8 @@ class Hub implements CmdExe, Listener{
 			case "unmute":
 				array_unshift($args, $cmd->getName());
 			case "chat":
+				if(!($isr instanceof Player))
+					return "Please run this command in-game.";
 				switch($subcmd = array_shift($args)){
 					case "mute":
 						$this->mutePA[$isr->CID] = array();
@@ -255,7 +257,7 @@ class Hub implements CmdExe, Listener{
 							return "You don't have permission to use /chat ch";
 						if(isset($args[0])){
 							$ch = array_shift($args);
-							if($isr->hasPermission($ch = $this->parseChannel($ch))){
+							if($isr->hasPermission($ch = $this->parseChannel($isr, $ch))){
 								return "Your chat channel has been set to \"$ch\"";
 							}
 							return "You don't have permission to create/join this chat channel";
@@ -271,7 +273,20 @@ class Hub implements CmdExe, Listener{
 				return $output;
 		}
 	}
-	public function addCoins(){
+	public function parseChannel(Player $player, $ch){
+		$mg = "";
+		$s = $this->hub->getSession($player);
+		if(){}
+		switch($ch){
+			case 0:break; // TODO
+		}
+	}
+	public function addCoins(Player $player, $coins, $reason = "you-guess-why", $silent = false){
+		$this->hub->getDb($player)->set("coins", $this->hub->getDb($player)->get("coins") + $coins);
+		$this->hub->logp($player, "$coins coins received for $reason.");
+		if(!$silent){
+			$player->sendMessage("You have received $coins for $reason.");
+		}
 	}
 	public static $inst = false;
 	public static function init(){
