@@ -104,6 +104,9 @@ class Main implements Listener, MgMain{
 	public function isJoinable(){
 		return true;
 	}
+	public function getStats(Player $player){
+		return "W.I.P. feature!";
+	}
 	public static $instance = false;
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];

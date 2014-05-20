@@ -106,22 +106,51 @@ class Hub implements CmdExe, Listener{
 		$evt->setFormat($format);
 	}
 	public function onQuitCmd($issuer, array $args){
-		$s = HubPlugin::get()->getSession($issuer);
-		switch($s){
+		if(!($issuer instanceof Player)){
+			$issuer->sendMessage("Please run this command in-game.");
+			return true;
+		}
+		$class = $this->getMgClass($issuer);
+		$class
+		return true;
+	}
+	public function onStatCmd($issuer, array $args){
+		if(!($issuer instanceof Player)){
+			$issuer->sendMessage("Please run this command in-game.");
+			return true;
+		}
+		$class = $this->getMgClass($issuer);
+		if(!is_string($class)){
+			$issuer->sendMessage("You are not in a minigame!");
+		}
+		else{
+			$msg = $class::get()->getStats();
+			if(!is_string($msg)){
+				$issuer->sendMessage("Stats unavailable.");
+			}
+			else{
+				$issuer->sendMessage($msg);
+			}
+		}
+	}
+	public function getMgClass(Player $player){
+		switch($this->hub->getSession($issuer)){
 			case HubPlugin::PVP:
-				Pvp::get()->onQuitMg($issuer);
+				$out = "pvp\\Pvp";
 				break;
 			case HubPlugin::PK:
-				Parkour::get()->onQuitMg($issuer);
+				$out = "pk\\Parkour";
 				break;
 			case HubPlugin::SPLEEF:
-				Spleef::get()->onQuitMg($issuer);
+				$out = "spleef\\Main";
 				break;
-			case HubPlugin::CTF:
-				CTF::get()->onQuitMg($issuer);
+			case HubpLugin::CTF:
+				$out = "ctf\\Main";
 				break;
+			default:
+				return false;
 		}
-		return true;
+		return "pemapmodder\\legionpe\\mgs\\$out";
 	}
 	public function onQuit(Event $event){
 		if(($s = $this->hub->sessions[$event->getPlayer()->CID]) > HubPlugin::HUB and $s <= HubPlugin::ON)
@@ -211,6 +240,9 @@ class Hub implements CmdExe, Listener{
 	}
 	public function onPreCmd(Event $event){
 		$p = $event->getPlayer();
+		if(substr($event->getMessage(), 0, 1) !== "/"){
+			return;
+		}
 		$cmd = explode(" ", $event->getMessage());
 		$command = substr(array_shift($cmd), 1);
 		switch($command){

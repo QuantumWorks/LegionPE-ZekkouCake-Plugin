@@ -110,6 +110,7 @@ class HubPlugin extends PluginBase implements Listener{
 			DP::registerPermission(new Permission("legionpe.cmd.players.$act", "Allow using command /$act", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.auth", "Allow using command /auth", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.mg.quit", "Allow using command /quit", Permission::DEFAULT_FALSE), $cmd);
+		DP::registerPermission(new Permission("legionpe.cmd.mg.stat", "Allow viewing statistics using command", Permission::DEFAULT_FALSE), $cmd);
 		$chat = DP::registerPermission(new Permission("legionpe.cmd.chat", "Allow using command /chat", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.chat.mandatory", "Allow sending mandatory chat using command /chat mand", Permission::DEFAULT_OP), $chat);
 		$ch = DP::registerPermission(new Permission("legionpe.cmd.chat.ch", "Allow using subcommand /chat ch", Permission::DEFAULT_TRUE), $chat);
@@ -184,18 +185,25 @@ class HubPlugin extends PluginBase implements Listener{
 	}
 	public function initCmds(){ // register commands
 		if("quit" === "quit"){
-		$cmd = new PluginCommand("quit", $this);
-		$cmd->setUsage("/quit");
-		$cmd->setDescription("Quit the current minigame, if possible");
-		$cmd->setPermission("legionpe.cmd.mg.quit");
-		$cmd->register($this->getServer()->getCommandMap());
+			$cmd = new PluginCommand("quit", $this);
+			$cmd->setUsage("/quit");
+			$cmd->setDescription("Quit the current minigame, if possible");
+			$cmd->setPermission("legionpe.cmd.mg.quit");
+			$cmd->register($this->getServer()->getCommandMap());
+		}
+		if("stat" === "stat"){
+			$cmd = new PluginCommand("stat", $this);
+			$cmd->setDescription("Show your stats in the current minigame, if possible");
+			$cmd->setUsage("/stat [args...] (differs in different minigames)");
+			$cmd->setPermission("legionpe.cmd.mg.stat");
+			$cmd->register($this->getServer()->getCommandMap());
 		}
 		if("show" === "show"){
-		$cmd = new PluginCommand("show", $this);
-		$cmd->setUsage("/show <invisible player|all>");
-		$cmd->setDescription("Attempt to show an invisible player");
-		$cmd->setPermission("legionpe.cmd.players.show");
-		$cmd->register($this->getServer()->getCommandMap());
+			$cmd = new PluginCommand("show", $this);
+			$cmd->setUsage("/show <invisible player|all>");
+			$cmd->setDescription("Attempt to show an invisible player");
+			$cmd->setPermission("legionpe.cmd.players.show");
+			$cmd->register($this->getServer()->getCommandMap());
 		}
 		if("hide" === "hide"){
 			$cmd = new PluginCommand("hide", $this);
@@ -288,6 +296,8 @@ class HubPlugin extends PluginBase implements Listener{
 			break;
 		case "quit":
 			Hub::get()->onQuitCmd($issuer, $args);
+		case "stat":
+			Hub::get()->onStatCmd($issuer, $args);
 		}
 		return true;
 	}
