@@ -40,6 +40,7 @@ class Hub implements CmdExe, Listener{
 			"legionpe.chat.public",
 			"legionpe.chat.mandatory",
 			"legionpe.chat.team.TID",
+			"legionpe.chat.shops",
 			"legionpe.chat.pvp.public",
 			"legionpe.chat.pvp.TID",
 			"legionpe.chat.pk.public",
