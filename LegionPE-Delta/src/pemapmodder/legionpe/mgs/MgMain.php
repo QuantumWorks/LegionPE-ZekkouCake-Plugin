@@ -21,6 +21,10 @@ interface MgMain{
 	 * @return bool
 	 */
 	public function isJoinable();
+	/**
+	 * @return string|bool|null string stat message, boolean false or null
+	 */
+	public function getStats(Player $player);
 	public static function init();
 	/**
 	 * @return self

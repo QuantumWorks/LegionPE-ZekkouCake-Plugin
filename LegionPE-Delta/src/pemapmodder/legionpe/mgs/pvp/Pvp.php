@@ -34,7 +34,6 @@ class Pvp implements CmdExe, Listener{
 			$mg = DP::registerPermission(new Perm("legionpe.cmd.mg.pvp", "Allow using KitPvP minigame commands", Perm::DEFAULT_FALSE), $mgs);
 			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.class", "Allow using commamd to choose self class in KitPvP"), $mg);
 			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.pvp", "Allow using command /pvp in KitPvP minigame"), $mg); // DEFAULT_FALSE because minigame-only
-			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.kills", "Allow using command /kills in KitPvP minigame"), $mg);
 		}
 		if("action" === "action"){
 			$mgs = $this->server->getPluginManager()->getPermission("legionpe.mg");
@@ -57,13 +56,6 @@ class Pvp implements CmdExe, Listener{
 			$cmd->setAliases(array("kit"));
 			$cmd->register($this->server->getCommandMap());
 		}
-		if("kills" === "kills"){
-			$cmd = new Cmd("kills", $this->hub, $this);
-			$cmd->setDescription("View your kills or top kills");
-			$cmd->setUsage("/kills [top]");
-			$cmd->setPermission("legionpe.cmd.mg.pvp.kills");
-			$cmd->register($this->server->getCommandMap());
-		}
 		if("class" === "class"){
 			$cmd = new Cmd("class", $this->hub, $this);
 			$cmd->setUsage("/class <class>");
@@ -78,12 +70,7 @@ class Pvp implements CmdExe, Listener{
 			case "pvp":
 				$this->equip($isr);
 				return "PvP kit given!";
-			case "kills":
-				$data = $this->hub->getDb($isr)->get("kitpvp");
-				$output = "Your kills: ".$data["kills"]."\n";
-				$output .= "Your deaths: ".$data["deaths"]."\n";
-				$output .= "Ratio: ".round($data["kills"]/$data["deaths"], 3);
-				return $output;
+				
 			case "class":
 				
 		}
@@ -130,6 +117,13 @@ class Pvp implements CmdExe, Listener{
 	}
 	public function isJoinable(){
 		return true;
+	}
+	public function getStats(Player $player){
+		$data = $this->hub->getDb($player)->get("kitpvp");
+		$output = "Your kills: ".$data["kills"]."\n";
+		$output .= "Your deaths: ".$data["deaths"]."\n";
+		$output .= "Ratio: ".round($data["kills"]/$data["deaths"], 3);
+		return $output;
 	}
 	public function onRespawn(Event $event){
 		$p = $event->getPlayer();

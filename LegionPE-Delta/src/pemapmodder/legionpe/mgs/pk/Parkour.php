@@ -38,14 +38,7 @@ class Parkour implements CmdExe, Listener, MgMain{
 		$pm->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pm->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onInteract")), HubPlugin::get());
 		// permission
-		// cmd perms
 		$cmdPerm = DP::registerPermission(new Perm("legionpe.cmd.mg.pk", "Allow using parkour commands", Perm::DEFAULT_FALSE), $pm->getPermission("legionpe.cmd.mg"));
-		DP::registerPermission(new Perm("legionpe.cmd.mg.pk.stats", "Allow using /stats for parkour minigame"), $cmdPerm);
-		// command
-		$cmd = new Cmd("stats", HubPlugin::get(), $this);
-		$cmd->setAliases(array("stat"));
-		$cmd->setDescription("View parkour stats");
-		$cmd->setPermission("legionpe.cmd.mg.pk.stats");
 	}
 	public function onCommand(Issuer $issuer, Command $cmd, $label, array $args){
 		switch($cmd->getName()){
@@ -63,7 +56,7 @@ class Parkour implements CmdExe, Listener, MgMain{
 			}
 		}
 	}
-	public function getStats(){
+	public function getStats(Player $player){
 		return "~~~~~~~~Parkour stats~~~~~~~~\n".str_replace("\r", "", yaml_emit($this->hub->config->get("parkour")->get("stats")))."\n~~~~~~~~Parkour stats~~~~~~~~";
 	}
 	public function onInteract(Event $event){

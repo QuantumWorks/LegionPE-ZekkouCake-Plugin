@@ -50,6 +50,9 @@ class Main implements MgMain, Listener{
 		}
 		return "Not started";
 	}
+	public function getStats(Player $player){
+		return "W.I.P. feature!";
+	}
 	public function finalize(){
 		if(isset($this->current) and $this->current instanceof Game)
 			$this->current->finalize("server stop");
