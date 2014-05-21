@@ -73,4 +73,16 @@ abstract class RawLocs{
 	public final static function enterCtfPor(){
 		return new MySpace(new Vector3(134, 30, 101), new Vector3(124, 42, 99), self::hub());
 	}
+	public final static function shop(){
+		return Lv::get("world_shop");
+	}
+	public final static function shopSpawn(){
+		return new Position(128, 128, 128, self::shop());
+	}
+	/**
+	 * @return Shop
+	 */
+	public final static function evalShopDetail(){
+		return null;
+	}
 }
