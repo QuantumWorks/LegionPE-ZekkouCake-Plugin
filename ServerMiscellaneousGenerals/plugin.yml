@@ -2,16 +2,33 @@ name: ServerMiscellaneousGenerals
 version: beta 0
 api: [1.0.0]
 author: PEMapModder
-load: postworld
+load: POSTWORLD
 main: pemapmodder\smg\Main
+prefix: SMG
 permissions:
-  smg:
-    default: false
-    description: SMG full access
-    children:
-      smg.admin:
-        description: SMG admin access
-      smg.mod:
-        description: SMG moderator access (global)
-        smg.mod.sectional:
-          description: SMG moderator access (sectional)
+ smg.mod:
+  description: sectional moderator
+  default: false
+ smg.mod.global:
+  description: global moderator
+  default: false
+ smg.admin:
+  description: 
+  default: op
+commands:
+ penalty:
+  usage: /penalty <player> <reason code> <description>
+  permission: smg.mod;smg.mod.global;smg.admin
+  permission-usage: "You don't have permission to use this command. Consider applying for a mod?"
+  description: Gives penalty to a player using SMG
+  aliases: [pen]
+ report:
+  aliases: [rp, rep]
+  usage: /report <player> <details> [-o|--offline]
+ report-view:
+  aliases: [rv, reports]
+  permission: smg.admin;smg.mod;smg.mod.global
+ penalty-view:
+  aliases: [pv, pens]
+  permission: smg.admin
+  description: view all unviewed penalties given from moderators
