@@ -6,15 +6,16 @@ load: POSTWORLD
 main: pemapmodder\smg\Main
 prefix: SMG
 permissions:
- smg.mod:
-  description: sectional moderator
+ smg:
+  description: smg staff
   default: false
- smg.mod.global:
-  description: global moderator
-  default: false
- smg.admin:
-  description: 
-  default: op
+  children:
+   smg.mod:
+    description: sectional moderator
+   smg.mod.global:
+    description: global moderator
+   smg.admin:
+    description: admin
 commands:
  penalty:
   usage: /penalty <player> <reason code> <description>
@@ -24,9 +25,12 @@ commands:
   aliases: [pen]
  report:
   aliases: [rp, rep]
-  usage: /report <player> <details> [-o|--offline]
+  usage: /report <player> <chat|mod|mods|move> <details>
  report-view:
   aliases: [rv, reports]
+  permission: smg.admin;smg.mod;smg.mod.global
+ report-view-log:
+  aliases: [rvl, getreplog]
   permission: smg.admin;smg.mod;smg.mod.global
  penalty-view:
   aliases: [pv, pens]

@@ -38,7 +38,7 @@ class ActionLogger extends EventExecutor implements Listener{
 					$this, EventPriority::MONITOR, $this, $this->main, true);
 		}
 	}
-	public function execute(Event $event){
+	public function execute(Listener $listener, Event $event){
 		switch(strtolower(array_slice(explode("\\", get_class($event)), -1)[0])){
 			case "playerchatevent":
 				$this->logChat($event->getPlayer(), $event->getMessage(), self::CHAT_CHAT);
@@ -81,7 +81,7 @@ class ActionLogger extends EventExecutor implements Listener{
 			$message = $data[1];
 			$type = $data[2];
 			$lastTime = $data[3];
-			$output .= "+$time s: $name> $message [$type]";
+			$output .= "+$timeDiff s: $name> $message [$type]\n";
 		}
 		return $output;
 	}
@@ -94,7 +94,7 @@ class ActionLogger extends EventExecutor implements Listener{
 			$y = $dat[0]->y;
 			$z = $dat[0]->z;
 			$time = round($dat[1] - $lastTime, 2);
-			$output .= "Move ($x, $y, $z) for $time s";
+			$output .= "Move ($x, $y, $z) for $time s\n";
 		}
 		return $output;
 	}

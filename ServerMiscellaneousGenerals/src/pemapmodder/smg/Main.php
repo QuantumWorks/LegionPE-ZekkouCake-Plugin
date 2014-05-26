@@ -2,11 +2,11 @@
 
 namespace pemapmodder\smg;
 
+use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender as Issuer;
-use pocketmine\event\EventPriority as EP;
 use pocketmine\event\Listener;
 use pocketmine\plugin\PluginBase as ParentClass;
 use pocketmine\utils\Config;
@@ -32,9 +32,23 @@ class Main extends ParentClass implements Listener{
 	const MOD_GLOB = "global moderator";
 	const MOD_SEC = "sectional moderator";
 	const NORM = "player";
-	
+	/**
+	 * @var BanList
+	 */
 	public $list;
+	/**
+	 * @var Penalty[]
+	 */
 	public $penalties = [];
+	/**
+	 * @var ActionLogger
+	 */
+	public $actionLogger;
+	/**
+	 * @var Config
+	 */
+	public $ranks;
+
 	
 	public function onEnable(){
 		$this->actionLogger = new ActionLogger($this);
@@ -42,12 +56,16 @@ class Main extends ParentClass implements Listener{
 		$this->ranks = new Config($this->getDataFolder()."config.yml", Config::YAML, [
 			"admin" => ["lambo", "spyduck", "pemapmodder"],
 			"mods" => [
-				"global" => ["sean_m"],
+				"global" => [
+					"player1",
+					"player2",
+				],
 				"sectional" => [
-					"trollofmc" => ["world_pvp", "world_spleef"],
-				]
+					"playername" => ["world_one", "world_two"],
+	            ]
 			]
 		]);
+		$this->getServer()->registerEvents($this, $this);
 	}
 	public function getRank(Player $player){
 		$name = strtolower($player->getName());
@@ -68,14 +86,67 @@ class Main extends ParentClass implements Listener{
 		}
 		return self::NORM;
 	}
+	public function hasPermission(Player $player, $worldName){
+		$rank = $this->getRank($player);
+		if($rank === self::ADMIN or $rank === self::MOD_GLOB){
+			return true;
+		}
+		if($rank === self::NORM){
+			return false;
+		}
+		$worlds = $this->ranks->get("mods")["sectional"][strtolower($player->getName())];
+		return in_array($worldName, $worlds);
+	}
+	/**
+	 * @param PlayerPreLoginEvent $event
+	 *
+	 * @priority HIGHEST
+	 * @ignoreCancelled true
+	 */
+	public function onPreLogin(PlayerPreLoginEvent $event){
+		$time = 0;
+		if($this->getBanList()->isBanned($event->getPlayer()->getAddress(), $time)){
+			$event->setCancelled(true);
+			$time /= (60 * 60);
+			if($time <= 36){
+				$time = round($time, 1);
+				$time = "$time hour(s)";
+			}
+			else{
+				$time /= 24;
+				$time = round($time, 1);
+				$time = "$time day(s)";
+			}
+			$event->setKickMessage("Banned by ServerMiscellaneousGenerals: $time left until ban lift");
+		}
+	}
 	public function onCommand(Issuer $isr, Command $cmd, $lbl, array $args){
 		switch($cmd){
 			case "report":
-				if(!isset($args[1])){
+				if(!isset($args[2])){
 					return false;
 				}
-				$player = array_shift($args);
+				$name = array_shift($args);
+				$player = $this->getServer()->getPlayer($name);
+				if(!($player instanceof Player)){
+					$isr->sendMessage("Player $name not found, aborting report.");
+					return true;
+				}
+				if(!in_array(strtolower($args), array("chat", "mod", "mods", "move"))){
+					$isr->sendMessage("Unclassified report type $args[0]. Aborting report.");
+					return true;
+				}
 				$details = implode(" ", $args);
+				$this->reportList->add($report = new Report($player, $type, $details, $isr));
+				$isr->sendMessage("You have successfully submitted report RID {$report->getID()} on player {$player->getName()} for ".($type ? "chat misbehavior":"using movement-related mods"));
+				break;
+			case "penalty":
+				break;
+			case "report-view":
+				break;
+			case "report-view-log":
+				break;
+			case "report-mark-read":
 				break;
 		}
 	}
@@ -94,7 +165,7 @@ class Main extends ParentClass implements Listener{
 		if($flags & self::STAFF_IMPOSE){
 			$out[] = "staff imposement";
 		}
-		if($flags & self:CLIMB_MOD){
+		if($flags & self::CLIMB_MOD){
 			$out[] = "climbing mod usage";
 		}
 		if($flags & self::FLY_MOD){
@@ -118,7 +189,7 @@ class Main extends ParentClass implements Listener{
 			$actions += self::REGBAN;
 		}
 		if($flags & self::SPAM){
-			$action += self::REGBAN;
+			$actions += self::REGBAN;
 		}
 		if($flags & self::HARRASS){
 			$action += self::REGPEN;
@@ -131,6 +202,15 @@ class Main extends ParentClass implements Listener{
 		}
 		return [$out, $actions];
 	}
+	public function getActionLogger(){
+		return $this->actionLogger;
+	}
+	public function getBanList(){
+		return $this->list;
+	}
+	/**
+	 * @return null|Main
+	 */
 	public static function get(){
 		return Server::getInstance()->getPluginManager()->getPlugin("ServerMiscellaneousGenerals");
 	}

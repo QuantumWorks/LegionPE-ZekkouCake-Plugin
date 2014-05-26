@@ -4,17 +4,18 @@ namespace pemapmodder\smg;
 
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\scheduler\PluginTask;
 
 class Penalty extends PluginTask{
 	public static $pid = 0;
 	public $cancelled = false;
 	public $id;
 	public static function add(Player $issuer, Player $target, $flags, $seconds = 15, $extraData = false){
-		$penalty = new static($issuer, $target, $flags, $seconds, $extraData)
-		Server::getInstance()->getScheduler()->scheduleDelayedTask($penalty, $seconds * 15);
+		$penalty = new static($issuer, $target, $flags, $extraData);
+		Server::getInstance()->getScheduler()->scheduleDelayedTask($penalty, $seconds * 20);
 		Main::get()->penalties[$penalty->id] = $penalty;
 	}
-	public function __construct(Player $issuer, Player $target, $reasons, $seconds = 15, $extraData = false){
+	public function __construct(Player $issuer, Player $target, $reasons, $extraData = false){
 		parent::__construct(Main::get());
 		$this->server = Server::getInstance();
 		$this->id = self::$pid++;
@@ -29,10 +30,16 @@ class Penalty extends PluginTask{
 		$this->action = Main::get()->evalFlags($reasons)[1];
 		$target->sendMessage("This penalty gives you {$this->action} ban points.");
 	}
+	public function cancel(){
+		$this->cancelled = true;
+	}
 	public function onRun($ticks){
-		Main::get()->list->warn($this->inetAddress, $this->action);
+		if($this->cancelled !== true){
+			Main::get()->list->warn($this->inetAddress, $this->action);
+			$this->cancel();
+		}
 	}
 	public static function get($pid){
-		return @Main::get()->penalties[$pid];
+		return isset(Main::get()->penalties[$pid]) ? Main::get()->penalties[$pid]:false;
 	}
 }

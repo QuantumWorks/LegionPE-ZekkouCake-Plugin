@@ -39,8 +39,13 @@ class BanList{
 		}
 		$this->data[$address]["lift"] = time() + $days * 60 * 60 * 24;
 	}
-	public function isBanned($address){
-		return $this->data[$address]["lift"] < time();
+	public function isBanned($address, &$secsLeft = 0){
+		if(!isset($this->data[$address]["lift"])){
+			return false;
+		}
+		$lift = $this->data[$address]["lift"];
+		$secsLeft = $lift - time();
+		return $secsLeft >= 0;
 	}
 	public function getPoints($address){
 		$points = 0;
