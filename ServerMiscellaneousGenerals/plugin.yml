@@ -20,7 +20,7 @@ commands:
  penalty:
   usage: /penalty <player> <reason code> <description>
   permission: smg.mod;smg.mod.global;smg.admin
-  permission-usage: "You don't have permission to use this command. Consider applying for a mod?"
+  permission-message: "You don't have permission to use this command. Consider applying for a mod?"
   description: Gives penalty to a player using SMG
   aliases: [pen]
  report:
@@ -28,11 +28,13 @@ commands:
   usage: /report <player> <chat|mod|mods|move> <details>
  report-view:
   aliases: [rv, reports]
-  permission: smg.admin;smg.mod;smg.mod.global
+  permission: smg
  report-view-log:
   aliases: [rvl, getreplog]
-  permission: smg.admin;smg.mod;smg.mod.global
- penalty-view:
-  aliases: [pv, pens]
-  permission: smg.admin
-  description: view all unviewed penalties given from moderators
+  permission: smg
+ report-mark-read:
+  aliases: [repread]
+  permission: smg
+ report-mark-resolved:
+  aliases: [repres]
+  permission: smg

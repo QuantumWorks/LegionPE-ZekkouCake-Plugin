@@ -4,6 +4,7 @@ namespace pemapmodder\smg;
 
 use pocketmine\Player;
 use pocketmine\command\CommandSender as Issuer;
+use pocketmine\Server;
 
 class Report{
 	/**
@@ -21,13 +22,18 @@ class Report{
 	 * @var bool
 	 */
 	protected $read = false;
+	/**
+	 * @var Player $viewer
+	 */
+	protected $warning = 0;
+	protected $viewer = null;
 	protected $details;
 	protected $backLog;
 	protected $type;
 	protected $reporter;
 	protected $reported;
 	protected $reportedIP;
-	protected $reportWorld;
+	protected $reportedWorld;
 	/**
 	 * @param Player $player
 	 * @param bool $type
@@ -73,5 +79,25 @@ class Report{
 	}
 	public function resolve(){
 		$this->resolved = true;
+		$this->read = true;
+	}
+	public function read(){
+		$this->read = true;
+	}
+	public function setViewer(Player $player){
+		if(!Main::get()->hasPermission($player, $this->reportedWorld)){
+			return false;
+		}
+		$this->viewer = $player;
+		return true;
+	}
+	public function getViewer(){
+		return $this->viewer;
+	}
+	public function warn($flags){
+		$penalty = Penalty::add($this->viewer, Server::getInstance()->getOfflinePlayer($this->reported), $flags, 5, "via report approval");
+		$this->warning = $penalty->getPoints();
+		$this->resolved = true;
+		$this->read = true;
 	}
 } 

@@ -15,7 +15,7 @@ class Main extends ParentClass implements Listener{
 	const REGPEN	= 1;
 	const REGBAN	= 3;
 	const PERMBAN	= 15;
-	
+
 	const SPAM			= 0b000000000001; // 1
 	const HARRASS		= 0b000000000010; // 2
 	const SWEAR			= 0b000000000100; // 4
@@ -27,19 +27,19 @@ class Main extends ParentClass implements Listener{
 	const GLITCH_USE	= 0b000100000000; // 256
 	const IMPROPER_CHAT	= 0b001000000000; // 512
 	const MOD_USE		= 0b000011110000; // 235
-	
+
 	const ADMIN = "admin";
 	const MOD_GLOB = "global moderator";
 	const MOD_SEC = "sectional moderator";
 	const NORM = "player";
 	/**
+	 * @var Penalty[] indexed according to issuer CID
+	 */
+	public $penalties = [];
+	/**
 	 * @var BanList
 	 */
 	public $list;
-	/**
-	 * @var Penalty[]
-	 */
-	public $penalties = [];
 	/**
 	 * @var ActionLogger
 	 */
@@ -48,8 +48,10 @@ class Main extends ParentClass implements Listener{
 	 * @var Config
 	 */
 	public $ranks;
-
-	
+	/**
+	 * @var ReportList
+	 */
+	public $reportList;
 	public function onEnable(){
 		$this->actionLogger = new ActionLogger($this);
 		$this->list = new BanList($this->getDataFolder()."ban-list.json");
@@ -66,6 +68,7 @@ class Main extends ParentClass implements Listener{
 			]
 		]);
 		$this->getServer()->registerEvents($this, $this);
+		$this->reportList = new ReportList;
 	}
 	public function getRank(Player $player){
 		$name = strtolower($player->getName());
@@ -120,7 +123,18 @@ class Main extends ParentClass implements Listener{
 			$event->setKickMessage("Banned by ServerMiscellaneousGenerals: $time left until ban lift");
 		}
 	}
+	/**
+	 * @param Issuer $isr
+	 * @param Command $cmd
+	 * @param string $lbl
+	 * @param array $args
+	 * @return bool
+	 */
 	public function onCommand(Issuer $isr, Command $cmd, $lbl, array $args){
+		if(!($isr instanceof Player)){
+			$isr->sendMessage("Please run this command in-game.");
+			return true;
+		}
 		switch($cmd){
 			case "report":
 				if(!isset($args[2])){
@@ -132,24 +146,91 @@ class Main extends ParentClass implements Listener{
 					$isr->sendMessage("Player $name not found, aborting report.");
 					return true;
 				}
-				if(!in_array(strtolower($args), array("chat", "mod", "mods", "move"))){
+				if(!in_array(strtolower($args[0]), array("chat", "mod", "mods", "move"))){
 					$isr->sendMessage("Unclassified report type $args[0]. Aborting report.");
 					return true;
 				}
+				$type = strtolower($args[0]) === "chat";
 				$details = implode(" ", $args);
 				$this->reportList->add($report = new Report($player, $type, $details, $isr));
 				$isr->sendMessage("You have successfully submitted report RID {$report->getID()} on player {$player->getName()} for ".($type ? "chat misbehavior":"using movement-related mods"));
 				break;
 			case "penalty":
+				$this->penalties = $penalty = Penalty::add($isr, null, $this->evalStrFlags(array_shift($args)), array_shift($args), implode(" ", $args));
 				break;
 			case "report-view":
+				$report = $this->getReportList()->read($isr);
+				$isr->sendMessage("$report");
 				break;
 			case "report-view-log":
-				break;
+				$page = isset($args[0]) ? array_shift($args):1;
+				return $this->getReportList()->read($isr)->getLog($page);
 			case "report-mark-read":
+				$this->getReportList()->markRead($isr);
 				break;
+			case "report-mark-resolved":
+				$this->getReportList()->markResolved($isr);
+				break;
+			case "report-warn":
+				$this->getReportList()->markWarned($isr, $this->evalStrFlags(array_shift($args)));
 		}
 	}
+	/**
+	 * @param string
+	 * @return int
+	 */
+	public function evalStrFlags($flags, &$unknown = ""){
+		$split = preg_split("#[\\|,;#", $flags);
+		$flags = 0;
+		foreach($split as $flag){
+			switch($flag){
+				case "spam":
+				case "spamming":
+					$flags |= self::SPAM;
+					break;
+				case "harass":
+				case "harassing":
+					$flags |= self::HARRASS;
+					break;
+				case "swear":
+				case "swearing";
+					$flags |= self::SWEAR;
+					break;
+				case "staff-impose":
+				case "staff-imposement":
+					$flags |= self::STAFF_IMPOSE;
+					break;
+				case "climb":
+				case "climbing":
+					$flags |= self::CLIMB_MOD;
+					break;
+				case "fly":
+				case "flying":
+					$flags |= self::CLIMB_MOD;
+					break;
+				case "jump":
+				case "superjump":
+					$flags |= self::JUMP_MOD;
+					break;
+				case "sprint":
+					$flags |= self::SPRINT_MOD;
+					break;
+				case "glitch":
+				case "glitching":
+				case "bug":
+					$flags |= self::GLITCH_USE;
+					break;
+				default:
+					$unknown .= $flag.", ";
+			}
+		}
+		$unknown = substr($unknown, 0, -2);
+		return $flags;
+	}
+	/**
+	 * @param int $flags
+	 * @return [string[] $reasons, int $warningPoints]
+	 */
 	public function evalFlags($flags){
 		$out = [];
 		// reasons
@@ -157,7 +238,7 @@ class Main extends ParentClass implements Listener{
 			$out[] = "spam";
 		}
 		if($flags & self::HARRASS){
-			$out[] = "harrassing other players";
+			$out[] = "harassing other players";
 		}
 		if($flags & self::SWEAR){
 			$out[] = "swearing";
@@ -202,11 +283,23 @@ class Main extends ParentClass implements Listener{
 		}
 		return [$out, $actions];
 	}
+	/**
+	 * @return ActionLogger
+	 */
 	public function getActionLogger(){
 		return $this->actionLogger;
 	}
+	/**
+	 * @return BanList
+	 */
 	public function getBanList(){
 		return $this->list;
+	}
+	/**
+	 * @return ReportList
+	 */
+	public function getReportList(){
+		return $this->reportList;
 	}
 	/**
 	 * @return null|Main
