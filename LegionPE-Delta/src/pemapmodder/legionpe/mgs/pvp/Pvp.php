@@ -4,9 +4,9 @@ namespace pemapmodder\legionpe\mgs\pvp;
 
 use pemapmodder\legionpe\hub\HubPlugin;
 use pemampodder\legionpe\hub\Team;
+//use pemapmodder\utils\CallbackEventExe as EvtExe;
+use pemapmodder\legionpe\mgs\MgMain;
 
-use pemapmodder\utils\CallbackEventExe as EvtExe;
-use pemapmodder\utils\CallbackPluginTask as Task;
 use pemapmodder\utils\PluginCmdExt as Cmd;
 
 use pocketmine\Player;
@@ -15,13 +15,13 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandExecutor as CmdExe;
 use pocketmine\command\CommandSender as Issuer;
 use pocketmine\event\Event;
-use pocketmine\event\EventPriority;
+//use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\item\Item;
 use pocketmine\permission\DefaultPermissions as DP;
 use pocketmine\permission\Permission as Perm;
 
-class Pvp implements CmdExe, Listener{
+class Pvp extends MgMain implements CmdExe, Listener{
 	public $pvpDies = array();
 	protected $attachments = array();
 	public function __construct(){
@@ -32,7 +32,7 @@ class Pvp implements CmdExe, Listener{
 		if("cmd" === "cmd"){
 			$mgs = $this->server->getPluginManager()->getPermission("legionpe.cmd.mg");
 			$mg = DP::registerPermission(new Perm("legionpe.cmd.mg.pvp", "Allow using KitPvP minigame commands", Perm::DEFAULT_FALSE), $mgs);
-			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.class", "Allow using commamd to choose self class in KitPvP"), $mg);
+			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.class", "Allow using command to choose self class in KitPvP"), $mg);
 			DP::registerPermission(new Perm("legionpe.cmd.mg.pvp.pvp", "Allow using command /pvp in KitPvP minigame"), $mg); // DEFAULT_FALSE because minigame-only
 		}
 		if("action" === "action"){
@@ -42,10 +42,10 @@ class Pvp implements CmdExe, Listener{
 		}
 	}
 	protected function regEvts(){
-		// $this->server->getPluginManager()->registerEvent("pocketmine\\event\\entity\\EntityDeathEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onDeath")), $this->hub);
-		// $this->server->getPluginManager()->registerEvent("pocketmine\\event\\entity\\EntityHurtEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onHurt")), $this->hub);
-		// $this->server->getPluginManager()->registerEvent("pocketmine\\event\\player\\PlayerAttackEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onAttack")), $this->hub);
-		// $this->server->getPluginManager()->registerEvent("pocketmine\\event\\player\\PlayerRespawnEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onRespawn")), $this->hub);
+//		 $this->server->getPluginManager()->registerEvent("pocketmine\\event\\entity\\EntityDeathEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onDeath")), $this->hub);
+//		 $this->server->getPluginManager()->registerEvent("pocketmine\\event\\entity\\EntityHurtEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onHurt")), $this->hub);
+//		 $this->server->getPluginManager()->registerEvent("pocketmine\\event\\player\\PlayerAttackEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onAttack")), $this->hub);
+//		 $this->server->getPluginManager()->registerEvent("pocketmine\\event\\player\\PlayerRespawnEvent", $this, EventPriority::HIGH, new EvtExe(array($this, "onRespawn")), $this->hub);
 	}
 	protected function initCmds(){
 		if("pvp" === "pvp"){
