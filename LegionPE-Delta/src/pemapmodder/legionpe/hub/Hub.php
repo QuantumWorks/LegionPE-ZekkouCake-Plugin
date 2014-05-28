@@ -329,6 +329,9 @@ class Hub implements CmdExe, Listener{
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
 	}
+	/**
+	 * @return static
+	 */
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];
 	}

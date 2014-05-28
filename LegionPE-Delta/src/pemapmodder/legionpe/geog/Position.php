@@ -7,6 +7,12 @@ use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 
 class Position extends PmPos{
+	/**
+	 * @param int|PmPos $x
+	 * @param int $y
+	 * @param int $z
+	 * @param Level $level
+	 */
 	public function __construct($x, $y=0, $z=0, Level $level=null){
 		if($x instanceof PmPos)
 			parent::__construct($x->x, $x->y, $x->z, $z->level);

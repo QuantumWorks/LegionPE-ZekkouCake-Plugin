@@ -3,7 +3,7 @@
 namespace pemapmodder\legionpe\hub;
 
 use pocketmine\Player;
-use pocketmine\event\Event;
+use pocketmine\event\player\PlayerEvent;
 
 class PlayerAuthEvent extends PlayerEvent{
 	public static $handlerList = null;
