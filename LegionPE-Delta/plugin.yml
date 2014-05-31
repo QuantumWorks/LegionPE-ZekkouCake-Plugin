@@ -1,5 +1,5 @@
 name: LegionPE_Delta
-authors: [PEMapModder]
+authors: [PEMapModder, Lambo]
 main: pemapmodder\legionpe\hub\HubPlugin
 load: PostWorld
 prefix: LegionPE

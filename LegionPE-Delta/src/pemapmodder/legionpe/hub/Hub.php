@@ -33,7 +33,7 @@ class Hub implements CmdExe, Listener{
 	public $teleports = array();
 	protected $writePA = array();
 	protected $mutePA = array();
-	protected $pchannel = array();
+	protected $pchannels = array();
 	protected $channels = array();
 	public static function defaultChannels(){
 		$r = array(
@@ -93,7 +93,12 @@ class Hub implements CmdExe, Listener{
 	}
 	public function onChat(Event $evt){
 		$pfxs = HubPlugin::get()->getDb($p = $evt->getPlayer())->get("prefixes");
-		$pfxs["team"] = Team::get(HubPlugin::get()->getDb($p)->get("team"))["name"];
+		$team = HubPlugin::get()->getDb($p)->get("team");
+		if($team === false){
+			$evt->setCancelled(true);
+			return;
+		}
+		$pfxs["team"] = Team::get($team)["name"];
 		$rec = array();
 		foreach($evt->getRecipients() as $r){
 			$chan = $this->pchannels[$p->CID];
@@ -112,7 +117,7 @@ class Hub implements CmdExe, Listener{
 			return true;
 		}
 		$class = $this->getMgClass($issuer);
-		$class
+		$class::get()->onQuitMg($issuer);
 		return true;
 	}
 	public function onStatCmd($issuer, array $args){
@@ -223,12 +228,12 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
-		$oldChannel = $this->pchannels[$player->CID];
+		$oldChannel = isset($this->pchannels[$player->CID]) ? $this->pchannels[$player->CID]:false;
 		$this->pchannels[$player->CID] = $channel;
 		if(!$writeOnly){
-			$this->readPA[$player->CID][$channel] = $player->addAttachment($channel.".read", true);
+			$this->readPA[$player->CID][$channel] = $player->addAttachment($this->hub, $channel.".read", true);
 		}
-		if(!$reserveOld){
+		if(!$reserveOld and $oldChannel !== false){
 			$player->removeAttachment($this->readPA[$player->CID][$oldChannel]);
 			unset($this->readPA[$player->CID][$oldChannel]);
 		}
@@ -309,7 +314,6 @@ class Hub implements CmdExe, Listener{
 	public function parseChannel(Player $player, $ch){
 		$mg = "";
 		$s = $this->hub->getSession($player);
-		if(){}
 		switch($ch){
 			case 0:break; // TODO
 		}
@@ -325,6 +329,9 @@ class Hub implements CmdExe, Listener{
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
 	}
+	/**
+	 * @return static
+	 */
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];
 	}

@@ -21,7 +21,7 @@ use pocketmine\event\Listener;
 use pocketmine\permission\DefaultPermissions as DP;
 use pocketmine\permission\Permission as Perm;
 
-class Parkour implements CmdExe, Listener, MgMain{
+class Parkour extends MgMain implements CmdExe, Listener{
 	protected $prefixes = array(
 		0=>"", // fix array_search() bug; hope it does xD
 		1=>"easy",

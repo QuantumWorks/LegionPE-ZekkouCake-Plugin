@@ -14,7 +14,7 @@ use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\level\Level;
 
-class Main implements MgMain, Listener{
+class Main extends  MgMain implements  Listener{
 	protected $current = null;
 	public function __construct(){
 		$this->hub = HubPlugin::get();

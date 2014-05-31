@@ -12,6 +12,15 @@ use pemapmodder\legionpe\mgs\ctf\Main as CTF;
 use pemapmodder\utils\CallbackPluginTask;
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\PluginCmdExt;
+use pocketmine\event\entity\EntityArmorChangeEvent;
+use pocketmine\event\entity\EntityMoveEvent;
+use pocketmine\event\entity\EntitySpawnEvent;
+use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\event\player\PlayerCommandPreprocessEvent;
+use pocketmine\event\player\PlayerInteractEvent;
+use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\entity\EntityTeleportEvent;
 
 use pocketmine\Player;
 use pocketmine\Server;
@@ -22,7 +31,6 @@ use pocketmine\command\RemoteConsoleCommandSender as RCon;
 use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
-use pocketmine\level\Level;
 use pocketmine\permission\DefaultPermissions as DP;
 use pocketmine\permission\Permission;
 use pocketmine\plugin\PluginBase;
@@ -30,7 +38,11 @@ use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 
 /**
+ * Class HubPlugin
  * Responsible for player auth sessions, teams selection, databases, main commands, permissions, config files and events top+base backup handling
+ * @package pemapmodder\legionpe\hub
+ * @parent PluginBase
+ * @interface Listener
  */
 class HubPlugin extends PluginBase implements Listener{
 	const CURRENT_VERSION = 0;
@@ -47,14 +59,46 @@ class HubPlugin extends PluginBase implements Listener{
 	const ON		= 0b10111; // Maximum online session ID
 	const LOGIN		= 0b11000;
 	const LOGIN_MAX	= 0b11111;
-
+	/**
+	 * @var Config
+	 */
+	public $ranks;
+	/**
+	 * @var object[] An object of stored non-static objects, a fix to pthreads and indexed with class names
+	 */
 	public $statics = array();
+	/**
+	 * @var int[]
+	 */
 	public $sessions = array();
+	/**
+	 * @var string[]
+	 */
 	protected $tmpPws = array();
+	/**
+	 * @var Config[]
+	 */
 	public $dbs = array();
+	/**
+	 * @var Team[]
+	 */
 	public $teams = array();
+	/**
+	 * @var Config
+	 */
 	public $config;
+	/**
+	 * @var callable[]
+	 */
 	protected $disableListeners = array();
+	/**
+	 * @var string
+	 */
+	public $path;
+	/**
+	 * @var string
+	 */
+	public $playerPath;
 	public function onEnable(){
 		console(TextFormat::AQUA."Initializing Hub", false);
 		$time = microtime(true);
@@ -94,8 +138,8 @@ class HubPlugin extends PluginBase implements Listener{
 	}
 	protected function initObjects(){ // initialize objects: Team, Hub, Shop, other minigames
 		Hub::init();
-		Shops::init();
 		Team::init();
+		Shops::init();
 		Pvp::init();
 		Pk::init();
 		Spleef::init();
@@ -104,12 +148,13 @@ class HubPlugin extends PluginBase implements Listener{
 	protected function initPerms(){ // initialize core permissions
 		$root = DP::registerPermission(new Permission("legionpe", "Allow using all LegionPE commands and utilities"));
 		// minigames
-		$mgs = DP::registerPermission(new Permission("legionpe.mg", "Allow doing actions in minigames"), $root);
+		DP::registerPermission(new Permission("legionpe.mg", "Allow doing actions in minigames"), $root);
 		// commands
 		$cmd = DP::registerPermission(new Permission("legionpe.cmd"), $root);
 		$pcmds = DP::registerPermission(new Permission("legionpe.cmd.players", "Allow using player-spawn-despawn-related commands"), $cmd);
-		foreach(array("show", "hide") as $act)
-			DP::registerPermission(new Permission("legionpe.cmd.players.$act", "Allow using command /$act", Permission::DEFAULT_TRUE), $cmd);
+		foreach(array("show", "hide") as $act){
+			DP::registerPermission(new Permission("legionpe.cmd.players.$act", "Allow using command /$act", Permission::DEFAULT_TRUE), $pcmds);
+		}
 		DP::registerPermission(new Permission("legionpe.cmd.auth", "Allow using command /auth", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.rules", "Allow using command /rules", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.mg.quit", "Allow using command /quit", Permission::DEFAULT_FALSE), $cmd);
@@ -178,13 +223,14 @@ class HubPlugin extends PluginBase implements Listener{
 		));
 	}
 	protected function registerHandles(){ // register events
-		foreach(array("PlayerJoin", "PlayerChat", "EntityArmorChange", "EntityMove", "PlayerInteract", "PlayerCommandPreprocess", "PlayerLogin", "PlayerQuit") as $e)
+		foreach(array("PlayerJoin", "PlayerQuit", "PlayerChat", "EntityArmorChange", "EntityMove", "PlayerInteract", "PlayerCommandPreprocess", "PlayerLogin", "EntityTeleport") as $e){
 			$this->addHandler($e);
+		}
 	}
 	protected function addHandler($event){ // local add handler function
 		$this->getServer()->getPluginManager()->registerEvent(
 				"pocketmine\\event\\".substr(strtolower($event), 0, 6)."\\".$event."Event", $this,
-				EventPriority::HIGHEST, new CallbackEventExe(array($this, "evt")), $this, false);
+				EventPriority::HIGHEST, new CallbackEventExe(array($this, "evt")), $this, true);
 	}
 	public function initCmds(){ // register commands
 		if("quit" === "quit"){
@@ -192,35 +238,35 @@ class HubPlugin extends PluginBase implements Listener{
 			$cmd->setUsage("/quit");
 			$cmd->setDescription("Quit the current minigame, if possible");
 			$cmd->setPermission("legionpe.cmd.mg.quit");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 		if("stat" === "stat"){
 			$cmd = new PluginCommand("stat", $this);
 			$cmd->setDescription("Show your stats in the current minigame, if possible");
 			$cmd->setUsage("/stat [args...] (differs in different minigames)");
 			$cmd->setPermission("legionpe.cmd.mg.stat");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 		if("show" === "show"){
 			$cmd = new PluginCommand("show", $this);
 			$cmd->setUsage("/show <invisible player|all>");
 			$cmd->setDescription("Attempt to show an invisible player");
 			$cmd->setPermission("legionpe.cmd.players.show");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 		if("hide" === "hide"){
 			$cmd = new PluginCommand("hide", $this);
 			$cmd->setUsage("/hide <player to hide>");
 			$cmd->setDescription("Make a player invisible to you");
 			$cmd->setPermission("legionpe.cmd.players.hide");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 		if("auth" === "auth"){
 			$cmd = new PluginCommand("auth", $this);
 			$cmd->setUsage("/auth <ip|help> [args ...]");
 			$cmd->setDescription("Auth-related commands");
 			$cmd->setPermission("legionpe.cmd.auth");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 		if("chat" === "chat"){
 			$cmd = new PluginCmdExt("chat", $this, Hub::get());
@@ -234,100 +280,114 @@ class HubPlugin extends PluginBase implements Listener{
 			$cmd->setUsage("/rules");
 			$cmd->setDescription("Show the rules");
 			$cmd->setPermission("legionpe.cmd.rules");
-			$this->getServer()->getCommandMap()->register($cmd);
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 	}
 	public function onCommand(CommandSender $issuer, Command $cmd, $label, array $args){ // handle commands
 		switch($cmd->getName()){
-		case "show":
-			if(!($issuer instanceof Player)){ // yell at whoever typed this, if not a player
-				$issuer->sendMessage("You are not supposed to see any players here!");
-				return true;
-			}
-			if(@strtolower(@$args[0]) !== "all" and !(($p = Player::get(@$args[0])) instanceof Player)){ // show usage, if invalid args
-				return false;
-			}
-			if(strtolower($args[0]) !== "all"){ // spawn a player, if player specified
-				if($p->level->getName() === $issuer->level->getName())
-					$p->spawnTo($issuer);
-				else $issuer->sendMessage($p->getDisplayName()." is not in your world!");
-			}
-			else{ // spawn all players, if player not specified
-				foreach(Player::getAll() as $p){
-					if($p->level->getName() === $issuer->level->getName())
-						$p->spawnTo($issuer);
+			case "show":
+				if(!($issuer instanceof Player)){ // yell at whoever typed this, if not a player
+					$issuer->sendMessage("You are not supposed to see any players here!");
+					return true;
 				}
-			}
-			break;
-		case "hide":
-			if(!($issuer instanceof Player)){ // yell at whoever typed this, if not a player
-				$issuer->sendMessage("You are not supposed to see any players here!");
-				return true;
-			}
-			if(!isset($args[0]) or !(($p = Player::get($args[0])) instanceof Player)){ // show usage, if invalid args
-				return false;
-			}
-			$p->despawnFrom($issuer); // operate
-			$issuer->sendMessage("{$p->getDisplayName()} is now invisible to you.");
-			break;
-		case "auth":
-			if(!($issuer instanceof Player)){
-				$issuer->sendMessage("What? You need to authenticate?");
-				if($issuer instanceof RCon) // just too bored? xD
-					$isuer->sendMessage("OK, but you don't manage the RCON password here, right?");
-				return true;
-			}
-			$subcmd = @array_shift($args);
-			switch($subcmd){ // manage subcommand
-				case "ip": // ip-auth settings
-					if(isset($args[0])){
-						if(strtolower($args[0]) === "on"){
-							$this->getDb($issuer)->set("ip-auth", $issuer->getAddress());
-							$issuer->sendMessage("Your IP-auth is now on with value \"{$issuer->getAddress()}\".");
-							break 2;
-						}
-						if(strtolower($args[0]) === "off"){
-							$this->getDb($issuer)->set("ip-auth", false);
-							$issuer->sendMessage("Your IP-auth has been turned off.");
-							break 2;
-						}
+				if(!isset($args[0])){
+					return false;
+				}
+				$p = $this->getServer()->getPlayer($args[0]);
+				if(@strtolower($args[0]) !== "all" and !($p instanceof Player)){ // show usage, if invalid args
+					return false;
+				}
+				if(strtolower($args[0]) !== "all"){ // spawn a player, if player specified
+					if($p->getLevel()->getName() === $issuer->getLevel()->getName())
+						$issuer->showPlayer($p);
+					else $issuer->sendMessage($p->getDisplayName()." is not in your world!");
+				}
+				else{ // spawn all players, if player not specified
+					foreach($this->getServer()->getOnlinePlayers() as $p){
+						if($p->getLevel()->getName() === $issuer->getLevel()->getName())
+							$issuer->showPlayer($p);
 					}
-					$issuer->sendMessage("Your IP-auth is ".(($s = $this->getDb($issuer)->get("ip-auth")) === false ? "off.":
-							"on with value \"$s\"."));
-					break;
-				case "help":
-				case false:
-				default:
-					$issuer->sendMessage("Usage: /auth <ip|help> [args ...]");
-					$issuer->sendMessage("/auth <ip> [on|off|any words]");
-					$issuer->sendMessage("/auth <help>");
-					break;
-			}
-			break;
-		case "rules":
-			break;
-		case "quit":
-			Hub::get()->onQuitCmd($issuer, $args);
-		case "stat":
-			Hub::get()->onStatCmd($issuer, $args);
+				}
+				break;
+			case "hide":
+				if(!($issuer instanceof Player)){ // yell at whoever typed this, if not a player
+					$issuer->sendMessage("You are not supposed to see any players here!");
+					return true;
+				}
+				if(!isset($args[0])){
+					return false;
+				}
+				$p = $this->getServer()->getPlayer($args[0]);
+				if(!($p instanceof Player)){ // show usage, if invalid args
+					return false;
+				}
+				$issuer->hidePlayer($p);
+				$issuer->sendMessage("{$p->getDisplayName()} is now invisible to you.");
+				break;
+			case "auth":
+				if(!($issuer instanceof Player)){
+					$issuer->sendMessage("What? You need to authenticate?");
+					if($issuer instanceof RCon) // just too bored? xD
+						$issuer->sendMessage("OK, but you don't manage the RCON password here, right?");
+					return true;
+				}
+				$subcmd = @array_shift($args);
+				switch($subcmd){ // manage subcommand
+					case "ip": // ip-auth settings
+						if(isset($args[0])){
+							if(strtolower($args[0]) === "on"){
+								$this->getDb($issuer)->set("ip-auth", $issuer->getAddress());
+								$issuer->sendMessage("Your IP-auth is now on with value \"{$issuer->getAddress()}\".");
+								break 2;
+							}
+							if(strtolower($args[0]) === "off"){
+								$this->getDb($issuer)->set("ip-auth", false);
+								$issuer->sendMessage("Your IP-auth has been turned off.");
+								break 2;
+							}
+						}
+						$issuer->sendMessage("Your IP-auth is ".(($s = $this->getDb($issuer)->get("ip-auth")) === false ? "off.":
+								"on with value \"$s\"."));
+						break;
+					case "help":
+					case false:
+					default:
+						$issuer->sendMessage("Usage: /auth <ip|help> [args ...]");
+						$issuer->sendMessage("/auth <ip> [on|off|any words]");
+						$issuer->sendMessage("/auth <help>");
+						break;
+				}
+				break;
+			case "rules":
+				break;
+			case "quit":
+				Hub::get()->onQuitCmd($issuer, $args);
+				break;
+			case "stat":
+				Hub::get()->onStatCmd($issuer, $args);
+				break;
 		}
 		return true;
 	}
 	public function evt(Event $event){ // handle events
 		$class = explode("\\", get_class($event));
 		$class = $class[count($class) - 1];
-		if(is_callable(array($event, "getPlayer"))){ // if is player event, store player into $p
-			$p = $event->getPlayer();
+		console(TextFormat::AQUA."Event $class triggered");
+		/**
+		 * @var Player
+		 */
+		$p = @$event->getPlayer();
+		if(is_callable(array($event, "getEntity")) and $event->getEntity() instanceof Player){
+			$p = $event->getEntity();
 		}
-		switch(substr($class, 0, -5)){ // handle events
-			case "PlayerLogin": // what the **** I put it here for...
-				break;
-			case "PlayerJoin": // open database, check password (decide (registry wizard / IP auth / password auth))
+		switch(true){ // handle events
+			case ($event instanceof PlayerJoinEvent): // open database, check password (decide (registry wizard / IP auth / password auth))
 				// console("[INFO] ".$p->getDisplayName()." entered the game.");
 				Hub::get()->setChannel($p, "legionpe.chat.mute.".$p->CID);
-				$event->setMessage("");
+				$event->setJoinMessage("");
 				$this->openDb($p);
 				if($this->getDb($p)->get("pw-hash") === false){ // request register (LegionPE registry wizard), if password doesn't exist
+					console("Registering account of ".$p->getDisplayName());
 					$this->sessions[$p->CID] = self::REGISTER;
 					$p->sendMessage("Welcome to the LegionPE account registry wizard.");
 					$p->sendMessage("Step 1:");
@@ -343,7 +403,7 @@ class HubPlugin extends PluginBase implements Listener{
 					$this->sessions[$p->CID] = self::LOGIN;
 				}
 				break;
-			case "PlayerChat": // if session is not self::HUB, monitor it. if session is self::HUB, prevent typing password here
+			case ($event instanceof PlayerChatEvent): // if session is not self::HUB, monitor it. if session is self::HUB, prevent typing password here
 				if(($s = $this->sessions[$p->CID]) < self::HUB or $s >= self::LOGIN){ // if not authed
 					$event->setCancelled(true);
 				}
@@ -362,8 +422,12 @@ class HubPlugin extends PluginBase implements Listener{
 						$p->sendMessage("The password matches! Type this password into your chat and send it next time you login.");
 						$p->sendMessage("LegionPE registry wizard closed!"); // TODO anything else I need to request?
 						$this->getDb($p)->set("pw-hash", $this->hash($event->getMessage()));
+						var_export($this->hash($event->getMessage()));
+						var_export($this->hash($event->getMessage()));
+						$this->getDb($p)->save();
 						$this->sessions[$p->CID]++;
 						unset($this->tmpPws[$p->CID]);
+						console($p->getDisplayName()." successfully registered!");
 						$this->onRegistered($p);
 					}
 					else{ // if password different
@@ -392,20 +456,31 @@ class HubPlugin extends PluginBase implements Listener{
 					}
 				}
 				break;
-			// protect|block player whilst logging in/registering
-			case "EntityArmorChange":
-			case "EntityMove":
+			case ($event instanceof EntitySpawnEvent):
+				$ent = $event->getEntity();
+				if(!($ent instanceof Player)){
+					return;
+				}
+				if($ent->getLevel()->getName() !== $event->getNewPosition()->getLevel()->getName()){
+					$this->getServer()->getScheduler()->scheduleDelayedTask(new CallbackPluginTask(array($this, "updateSession"), $this, $p), 1);
+				}
+				break;
+			case ($event instanceof EntityArmorChangeEvent):
+			case ($event instanceof EntityMoveEvent):
 				$p = $event->getEntity();
 				if(!($p instanceof Player)){ // only for players, not entities
 					break;
 				}
-			case "PlayerCommandPreprocess":
-			case "PlayerInteract":
-				if($this->sessions[$p->CID] !== self::HUB){ // disallow logging in
+			case ($event instanceof PlayerCommandPreprocessEvent):
+				if($class === "PlayerCommandPreprocessEvent" and substr($event->getMessage(), 0, 1) !== "/"){
+					return;
+				}
+			case ($event instanceof PlayerInteractEvent):
+				if(!$this->isLoggedIn($p)){ // disallow logging in
 					$event->setCancelled(true);
 					$p->sendMessage("Please login/register first!");
 				}
-				elseif($event instanceof \pocketmine\event\player\PlayerInteractEvent){ // check if is tapping join team signs, if is block touch
+				elseif($event instanceof PlayerInteractEvent){ // check if is tapping join team signs, if is block touch
 					$block = new MyPos($event->getBlock());
 					if($block->level->getName() === Loc::hub()->getName()){
 						for($i = 0; $i < 4; $i++){
@@ -428,8 +503,9 @@ class HubPlugin extends PluginBase implements Listener{
 					}
 				}
 				break;
-			case "PlayerQuit":
+			case ($event instanceof PlayerQuitEvent):
 				$this->closeDb($p);
+				break;
 			default:
 				console("[WARNING] Event ".get_class($event)." passed to listener at ".get_class()." but not listened to!");
 				break;
@@ -439,17 +515,40 @@ class HubPlugin extends PluginBase implements Listener{
 		Hub::get()->setChannel($p, "legionpe.chat.mute.".$p->CID);
 		$p->teleport(Loc::chooseTeamStd());
 		$this->sessions[$p->CID] = self::HUB;
-		$p->sendChat("Please select a team.\nSome teams are unselectable because they are too full.\nIf you insist to join those teams, come back later.");
+		$p->sendMessage("Please select a team.\nSome teams are unselectable because they are too full.\nIf you insist to join those teams, come back later.");
 	}
 	public function onAuthPlayer(Player $p){ // set session to self::HUB, tp to spawn, ensure tp, call PlayerAuthEvent
 		Hub::get()->setChannel($p, "legionpe.chat.general"); // luckily I remembered this :D
 		$this->sessions[$p->CID] = self::HUB;
-		$p->sendChat("You have successfully logged in into LegionPE!");
+		$p->sendMessage("You have successfully logged in into LegionPE!");
 		$s = Loc::spawn();
 		$p->teleport($s);
 		$this->getServer()->getPluginManager()->callEvent(new PlayerAuthEvent($p));
 		$this->getServer()->getScheduler()->scheduleDelayedTask(
 				new CallbackPluginTask(array($p, "teleport"), $this, array($s), true), 100);
+	}
+	public function updateSession(Player $player){
+		switch($player->getLevel()->getName()){
+			case "world_pvp":
+				$session = self::PVP;
+				break;
+			case "world_parkour":
+				$session = self::PK;
+				break;
+			case "world_spleef":
+				$session = self::SPLEEF;
+				break;
+			case "world_ctf":
+				$session = self::CTF;
+				break;
+			case "world_shops":
+				$session = self::SHOP;
+				break;
+			default:
+				$session = self::HUB;
+				break;
+		}
+		$this->sessions[$player->CID] = $session;
 	}
 	public function initRanks(){ // initialize ranks
 		$def = array(
@@ -464,7 +563,7 @@ class HubPlugin extends PluginBase implements Listener{
 		$this->ranks = new Config($this->getServer()->getDataPath()."ranks.yml", Config::YAML, $def);
 	}
 	// utils //
-	public function getRank($p){ // get the lowercase rank of a player
+	public function getRank(Player $p){ // get the lowercase rank of a player
 		foreach($this->ranks->getAll() as $rank=>$names){
 			if(in_array(strtolower($p->getName()), $names))
 				return $rank;
@@ -475,7 +574,7 @@ class HubPlugin extends PluginBase implements Listener{
 		return array("rank"=>"all", "team"=>"all", "kitpvp"=>"pvp", "kitpvp-rank"=>"pvp", "kitpvp-kills"=>"pvp", "parkour"=>"pk");
 	}
 	public function logp(Player $p, $msg){
-		file_put_contents($this->playerPath.$p->getAddress().".log", $log. PHP_EOL);
+		file_put_contents($this->playerPath.$p->getAddress().".log", $msg. PHP_EOL);
 	}
 	protected function openDb(Player $p){ // open and initialize the database of a player
 		@touch($this->playerPath.$p->getAddress().".log");
@@ -520,7 +619,7 @@ class HubPlugin extends PluginBase implements Listener{
 		$this->dbs[strtolower($p->getName())]->save();
 		unset($this->dbs[strtolower($p->getName())]);
 	}
-	public function getDb($p){ // get the database of a player
+	public function getDb(Player $p){ // get the database of a player
 		if(is_string($p))
 			$iname = strtolower($p);
 		else $iname = strtolower($p->getName());
@@ -530,16 +629,25 @@ class HubPlugin extends PluginBase implements Listener{
 		$salt = "";
 		for($i = strlen($string) - 1; $i >= 0; $i--)
 			$salt .= $string{$i};
-		$salt = @crypt($string, $salt);
+		// $salt = @crypt($string, $salt);
 		return bin2hex((0xdeadc0de * hash(hash_algos()[17], $string.$salt, true)) ^ (0x6a7e1ee7 * hash(hash_algos()[31], strtolower($salt).$string, true)));
 	}
 	public function getSession(Player $p){
 		return $this->sessions[$p->CID];
 	}
+	public function isLoggedIn(Player $player){
+		return isset($this->sessions[$player->CID]) and $this->sessions[$player->CID] <= self::ON and $this->sessions[$player->CID] >= self::HUB;
+	}
+	/**
+	 * @param int|Player $i
+	 * @return Team
+	 */
 	public function getTeam($i){
 		return $this->teams[Team::evalI($i)];
 	}
-	public static $instance = false;
+	/**
+	 * @return static
+	 */
 	public static function get(){ // get instance
 		return Server::getInstance()->getPluginManager()->getPlugin("LegionPE_Delta");
 	}

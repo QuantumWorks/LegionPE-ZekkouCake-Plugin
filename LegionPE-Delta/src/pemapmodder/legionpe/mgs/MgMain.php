@@ -4,30 +4,30 @@ namespace pemapmodder\legionpe\mgs;
 
 use pocketmine\Player;
 
-interface MgMain{
-	public function onJoinMg(Player $player);
-	public function onQuitMg(Player $player);
-	public function getName();
-	public function getSessionId();
+abstract class MgMain{
+	public abstract  function onJoinMg(Player $player);
+	public abstract function onQuitMg(Player $player);
+	public abstract function getName();
+	public abstract function getSessionId();
 	/**
 	 * @return pocketmine\level\Position
 	 */
-	public function getSpawn(Player $player, $TID);
+	public abstract function getSpawn(Player $player, $TID);
 	/**
 	 * @return string
 	 */
-	public function getDefaultChatChannel(Player $player, $TID);
+	public abstract function getDefaultChatChannel(Player $player, $TID);
 	/**
 	 * @return bool
 	 */
-	public function isJoinable();
+	public abstract function isJoinable();
 	/**
 	 * @return string|bool|null string stat message, boolean false or null
 	 */
-	public function getStats(Player $player);
-	public static function init();
+	public abstract function getStats(Player $player);
+	public abstract static function init();
 	/**
 	 * @return self
 	 */
-	public static function get();
+	public abstract static function get();
 }

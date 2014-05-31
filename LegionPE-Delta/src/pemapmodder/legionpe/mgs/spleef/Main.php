@@ -15,7 +15,7 @@ use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 
-class Main implements Listener, MgMain{
+class Main extends MgMain implements Listener{
 	public $arenas = array();
 	public $sessions = array();
 	protected $atchmts = array();
