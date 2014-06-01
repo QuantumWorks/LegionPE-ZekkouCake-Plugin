@@ -2,12 +2,14 @@
 
 namespace pemapmodder\legionpe\mgs\spleef;
 
+use pemapmodder\legionpe\hub\Hub;
 use pemapmodder\legionpe\hub\HubPlugin;
 use pemapmodder\legionpe\hub\Team;
 
 use pemapmodder\utils\DummyPlugin as Utils;
 
 use pocketmine\Player;
+use pocketmine\scheduler\PluginTask;
 use pocketmine\Server;
 use pocketmine\block\Block;
 use pocketmine\level\Level;
@@ -20,8 +22,7 @@ class Arena extends PluginTask{
 	protected $prestartTicks = -1, $scheduleTicks = -1, $runtimeTicks = -1;
 	public $status = 0, $players = array(), $preps;
 	protected $tmpLog = array(), $lastLevels = array(), $floorCyls = array();
-	public function __construct($id, Position $topCentre, $radius, $height, $floors, $players,
-			Block $floor, Block $pfloor, Block $pwall, Block $pceil){
+	public function __construct($id, Position $topCentre, $radius, $height, $floors, $players, Block $floor, Block $pfloor, Block $pwall, Block $pceil){
 		$this->hub = HubPlugin::get();
 		$this->server = Server::getInstance();
 		$this->main = Main::get();
@@ -153,7 +154,7 @@ class Arena extends PluginTask{
 		if(mt_rand(1, 100) <= Main::get()->getChance($p)){
 			$b->level->setBlock($b, Block::get(0));
 		}
-		$this->tmpLogs[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
+		$this->tmpLog[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
 	}
 	public function onMove(Player $player){
 		if($this->status === 0){
@@ -174,11 +175,17 @@ class Arena extends PluginTask{
 		}
 		$this->lastLevels[$player->CID] = array($new, $time);
 		if($new !== $this->floors)
-			return;
+			return true;
 		$this->kick($player, "Falling out of the arena");
 		$player->sendMessage("You lost! -2 points to your team!");
+		$db = $this->hub->getDb($player);
+		$data = $db->get("spleef");
+		$data["unwons"]++;
+		$db->set("spleef", $data);
+		$db->save();
 		HubPlugin::get()->getTeam($player)["points"] -= 2;
 		$this->checkPlayers();
+		return true;
 	}
 	protected function stupidGuessHole(Player $player, $levels){
 		$level = $this->getLevel($player);
@@ -186,7 +193,7 @@ class Arena extends PluginTask{
 			$x = (int) $player->x;
 			$y = $this->floorCyls[$level - 1 - $I]->centre->y;
 			$z = (int) $player->z;
-			$w = $this->topCentre->level;
+			$w = $this->centre->getLevel();
 			$b = $w->getBlock(new Vector3($x, $y, $z));
 			if($b->getID() !== 0){
 				$b = $w->getBlock(new Vector3($x + 1, $y, $z));
@@ -212,12 +219,12 @@ class Arena extends PluginTask{
 			}
 			if($team === HubPlugin::get()->getTeam($player)->getTeam()){
 				$player->sendMessage("Your teammate betrayed you for this fall! xD forgive him though. Either he or you must have been careless.");
-				Player::get($name)->sendMessage("Hey, why did you dig a hole for your teammate ".$player->getDisplayName()." to fall into?");
+				$this->server->getPlayer($name)->sendMessage("Hey, why did you dig a hole for your teammate ".$player->getDisplayName()." to fall into?");
 			}
 			else{
 				$player->sendMessage("You mined a hole to fall ".$player->getDisplayName().". 2 team points to you!");
 				HubPlugin::get()->getTeam($team)["points"] += 2;
-				$this->hub->addCoins($player, 2, "being awarded by stupid spleef hole guesser");
+				Hub::get()->addCoins($player, 2, "being awarded by stupid spleef hole guesser");
 			}
 		}
 	}
@@ -233,11 +240,19 @@ class Arena extends PluginTask{
 	}
 	protected function checkPlayers(){
 		$team = array();
-		foreach($this->players as $p)
+		foreach($this->players as $p){
 			$team[] = HubPlugin::get()->getTeam($p)->getTeam();
+		}
 		if(max($team) === min($team) or count($this->players) === 1){
 			$this->broadcast("The match has ended!");
 			$pts = count($this->players) * 10;
+			foreach($this->players as $p){
+				$db = $this->hub->getDb($p);
+				$data = $db->get("spleef");
+				$data["wins"]++;
+				$db->set("spleef", $data);
+				$db->save();
+			}
 			$this->broadcast("Each of the remaining players earns your team 10 points!");
 			HubPlugin::get()->getTeam($team[0])["points"] += $pts;
 			$this->end("Only player(s) of one team left.");
@@ -252,5 +267,26 @@ class Arena extends PluginTask{
 		if($two){
 			$this->broadcast("Now it is the grand deathmatch between team ".Team::get(max($team))["name"]." and team ".Team::get(min($team))["name"]."!");
 		}
+	}
+	public function checkTop($name, $wins){
+		$data = $this->hub->config->get("spleef");
+		$tops = $data["top-kills"];
+		$newTops0 = [];
+		$newTops1 = [];
+		foreach($tops as $n=>$w){
+			$newTops0[strtolower($n)] = $w;
+		}
+		foreach(array_keys($data) as $n){
+			$newTops1[strtolower($n)] = $n;
+		}
+		$newTops0[strtolower($name)] = $wins;
+		arsort($newTops0, SORT_NUMERIC);
+		$newTops2 = [];
+		foreach($newTops0 as $ln=>$w){
+			$newTops2[$newTops1[$ln]] = $w;
+		}
+		$data["top-wins"] = $newTops2;
+		$this->hub->config->set("spleef", $data);
+		$this->hub->config->save();
 	}
 }

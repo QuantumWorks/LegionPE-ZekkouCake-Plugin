@@ -50,7 +50,7 @@ class Main extends  MgMain implements  Listener{
 		}
 		return "Not started";
 	}
-	public function getStats(Player $player){
+	public function getStats(Player $player, array $args = []){
 		return "W.I.P. feature!";
 	}
 	public function finalize(){

@@ -202,6 +202,13 @@ class HubPlugin extends PluginBase implements Listener{
 				),
 			),
 			"spleef"=>array(
+				"top-wins" => array(
+					"Avery Black"=>4,
+					"Cindy Donalds"=>3,
+					"Elvin Farmer"=>2,
+					"Gregor Hill"=>1,
+					"Ivan Jones"=>0,
+				),
 				"chances"=>array(
 					"player"=>45,
 					"donater"=>50,

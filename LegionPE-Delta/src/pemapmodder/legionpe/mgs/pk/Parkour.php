@@ -56,8 +56,8 @@ class Parkour extends MgMain implements CmdExe, Listener{
 			}
 		}
 	}
-	public function getStats(Player $player){
-		return "~~~~~~~~Parkour stats~~~~~~~~\n".str_replace("\r", "", yaml_emit($this->hub->config->get("parkour")->get("stats")))."\n~~~~~~~~Parkour stats~~~~~~~~";
+	public function getStats(Player $player, array $args = []){
+		return "~~~~~~~~Parkour stats~~~~~~~~\n".str_replace(PHP_EOL, "\n", yaml_emit($this->hub->config->get("parkour")->get("stats")))."\n~~~~~~~~Parkour stats~~~~~~~~";
 	}
 	public function onInteract(Event $event){
 		if($event->getBlock() instanceof SignPost){

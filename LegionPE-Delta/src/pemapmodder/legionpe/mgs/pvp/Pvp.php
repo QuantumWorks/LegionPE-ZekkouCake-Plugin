@@ -64,7 +64,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		}
 	}
 	public function onCommand(Issuer $isr, Command $cmd, $label, array $args){
-		if(!($isr instanceof Player)) return "Please run this commamd in-game.";
+		if(!($isr instanceof Player)) return "Please run this command in-game.";
 		switch("$cmd"){
 			case "pvp":
 				$this->equip($isr);
@@ -75,7 +75,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	}
 	public function onDeath(Event $event){
 		$p = $event->getEntity();
-		if(!($p instanceof Player) or $p->level->getName() !== "world_pvp") return;
+		if(!($p instanceof Player) or $p->getLevel()->getName() !== "world_pvp") return;
 		$cause = $event->getCause();
 		if($cause instanceof Player){
 			$this->onKill($cause);
@@ -116,7 +116,10 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	public function isJoinable(){
 		return true;
 	}
-	public function getStats(Player $player){
+	public function getStats(Player $player, array $args = []){
+		if(isset($args[0]) and strtolower($args[0]) === "top"){
+			return str_replace(PHP_EOL, "\n", yaml_emit($this->hub->config->get("kitpvp")["top-kills"]));
+		}
 		$data = $this->hub->getDb($player)->get("kitpvp");
 		$output = "Your kills: ".$data["kills"]."\n";
 		$output .= "Your deaths: ".$data["deaths"]."\n";
@@ -180,9 +183,12 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		asort($pfxs, SORT_NUMERIC);
 		$pfx = "";
 		foreach($pfxs as $prefix=>$min){
-			if($kills >= $min)
+			if($kills >= $min){
 				$pfx = $prefix;
-			else break;
+			}
+			else{
+				break;
+			}
 		}
 		// set personal prefix
 		$data = $this->hub->getDb($killer)->get("prefixes");

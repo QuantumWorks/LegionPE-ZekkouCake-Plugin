@@ -47,9 +47,13 @@ class Main extends MgMain implements Listener{
 			$pm->registerEvent("pocketmine\\event\\".$ev[0], $this, EventPriority::HIGH, new CallbackEventExe(array($this, $ev[1])), HubPlugin::get());
 	}
 	public function onMove(EntityMoveEvent $evt){
-		if($evt->getEntity() instanceof Player and $evt->getEntity()->getLevel()->getName() === "world_spleef" and isset($this->sessions[$evt->getEntity()->CID])){
-			if(($sid = $this->sessions[$evt->getEntity()->CID]) !== -1)
-				if($this->arenas[$sid]->onMove($evt->getEntity()) === false)
+		$p = $evt->getEntity();
+		if(!($p instanceof Player)){
+			return;
+		}
+		if($p->getLevel()->getName() === "world_spleef" and isset($this->sessions[$p->CID])){
+			if(($sid = $this->sessions[$p->CID]) !== -1)
+				if($this->arenas[$sid]->onMove($p) === false)
 					$evt->setCancelled(true);
 		}
 	}
@@ -115,8 +119,12 @@ class Main extends MgMain implements Listener{
 	public function isJoinable(){
 		return true;
 	}
-	public function getStats(Player $player){
-		return "W.I.P. feature!";
+	public function getStats(Player $player, array $args = []){
+		if(!isset($args[0]) or strtolower($args[0]) !== "top"){
+			$db = $this->hub->getDb($player)->get("spleef");
+			return "You have ".$db["wins"]." wins and ".$db["unwons"]." losses.";
+		}
+		return yaml_emit($this->hub->config->get("spleef")["top-wins"]);
 	}
 	public static $instance = false;
 	public static function get(){

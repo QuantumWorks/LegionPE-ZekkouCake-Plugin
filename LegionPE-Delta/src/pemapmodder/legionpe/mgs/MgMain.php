@@ -24,7 +24,7 @@ abstract class MgMain{
 	/**
 	 * @return string|bool|null string stat message, boolean false or null
 	 */
-	public abstract function getStats(Player $player);
+	public abstract function getStats(Player $player, array $args = []);
 //	public abstract static function init();
 	/**
 	 * @return self

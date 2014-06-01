@@ -2,6 +2,7 @@
 
 namespace pemapmodder\legionpe\hub;
 
+use pemapmodder\legionpe\geog\RawLocs;
 use pemapmodder\legionpe\mgs\MgMain;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
@@ -45,7 +46,7 @@ class Shops extends MgMain implements Listener{
 	public function isJoinable(){
 		return true;
 	}
-	public function getStats(Player $player){
+	public function getStats(Player $player, $args){
 		return "This will show your coins. W.I.P. Sorry.";
 	}
 	public static function init(){
