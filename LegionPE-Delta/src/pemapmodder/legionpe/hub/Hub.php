@@ -91,7 +91,7 @@ class Hub implements CmdExe, Listener{
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
 		$pmgr = $this->server->getPluginManager();
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::HIGHEST, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get(), true);
+		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::LOWEST, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get(), true);
 		$pmgr->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerChatEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onChat")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerQuitEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onQuit")), HubPlugin::get());
