@@ -55,9 +55,9 @@ class Hub implements CmdExe, Listener{
 			"legionpe.chat.ctf.public",
 			"legionpe.chat.ctf.TID",
 			"legionpe.chat.spleef.public",
-			"legionpe.chat.spleef.TID",
-			"legionpe.chat.spleef.SID",
-			"legionpe.chat.spleef.SID.TID",
+			"legionpe.chat.spleef.tTID",
+			"legionpe.chat.spleef.sSID",
+			"legionpe.chat.spleef.sSID.tTID",
 		);
 		$out = array();
 		foreach($r as $ch){
@@ -91,7 +91,7 @@ class Hub implements CmdExe, Listener{
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
 		$pmgr = $this->server->getPluginManager();
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::LOW, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get());
+		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::HIGHEST, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get(), true);
 		$pmgr->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerChatEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onChat")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerQuitEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onQuit")), HubPlugin::get());
@@ -148,9 +148,12 @@ class Hub implements CmdExe, Listener{
 			}
 		}
 	}
-	public function getMgClass(Player $player, $acceptNonMg = false){
+	public function getMgClass(Player $player, $acceptNonMg = true, $simple = false){
 		if($acceptNonMg and $this->hub->getSession($player) === HubPlugin::HUB or $this->hub->getSession($player) === HubPlugin::SHOP){
-			return ($this->hub->getSession($player) === HubPlugin::HUB) ? get_class():"pemapmodder\\legionpe\\hub\\Shops";
+			if($simple){
+				return ($this->hub->getSession($player) === HubPlugin::HUB) ? "":"shops.";
+			}
+			return ($this->hub->getSession($player) === HubPlugin::HUB) ? "\\pemapmodder\\legionpe\\hub\\Hub":"\\pemapmodder\\legionpe\\hub\\Shops";
 		}
 		switch($this->hub->getSession($player)){
 			case HubPlugin::PVP:
@@ -168,7 +171,7 @@ class Hub implements CmdExe, Listener{
 			default:
 				return false;
 		}
-		return "pemapmodder\\legionpe\\mgs\\$out";
+		return $simple ? (strstr($out, "\\", true)."."):"\\pemapmodder\\legionpe\\mgs\\$out";
 	}
 	public function onQuit(PlayerQuitEvent $event){
 		if(($s = $this->hub->sessions[$event->getPlayer()->CID]) > HubPlugin::HUB and $s <= HubPlugin::ON)
@@ -332,8 +335,47 @@ class Hub implements CmdExe, Listener{
 		}
 		return true;
 	}
-	public function parseChannel(Player $player, $ch){
-		$mg = $this->getMgClass($player);
+	public function parseChannel(Player $player, $chan){
+		$t = $this->hub->getDb($player)->get("team");
+		$s = $this->hub->getSession($player);
+		$spleef = ($s === HubPlugin::SPLEEF);
+		switch(strtolower($chan)){
+			case "general":
+			case "gen":
+			case "g":
+			case "public":
+			case "pub":
+			case "p":
+				$ch = "public";
+				break;
+			case "team":
+			case  "t":
+				$ch = $t;
+				break;
+			case "arena":
+			case "a":
+			case "at":
+			case "arenateam":
+			case "teamarena":
+			case "ta":
+				if($spleef){
+					$ch = Spleef::get()->getArena($player);
+					if($ch !== false){
+						$ch = "s".$ch.((stripos($chan, "t") !== false) ? (".t".$t):"");
+						break;
+					}
+				}
+				$player->sendMessage("You are not in a spleef arena! Your chat channel will be set to the default one in your minigame.");
+				$ch = $this->getMgClass($player);
+				eval("return $ch::get()->getDefaultChatChannel(\$player, \$t);");
+				break;
+			default:
+				$player->sendMessage("Unidentified chat channel identifier $chan. Your chat channel will be set to the default one in your minigame.");
+				$ch = $this->getMgClass($player);
+				eval("return $ch::get()->getDefaultChatChannel(\$player, \$t);");
+				break;
+		}
+		return "legionpe.chat.".$this->getMgClass($player, true, true).$ch;
 	}
 	public function addCoins(Player $player, $coins, $reason = "you-guess-why", $silent = false){
 		$this->hub->getDb($player)->set("coins", $this->hub->getDb($player)->get("coins") + $coins);
