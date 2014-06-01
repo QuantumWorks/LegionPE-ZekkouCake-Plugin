@@ -164,7 +164,7 @@ class HubPlugin extends PluginBase implements Listener{
 		DP::registerPermission(new Permission("legionpe.cmd.mg.quit", "Allow using command /quit", Permission::DEFAULT_FALSE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.mg.stat", "Allow viewing statistics using command", Permission::DEFAULT_FALSE), $cmd);
 		$chat = DP::registerPermission(new Permission("legionpe.cmd.chat", "Allow using command /chat", Permission::DEFAULT_TRUE), $cmd);
-		DP::registerPermission(new Permission("legionpe.cmd.chat.mandatory", "Allow sending mandatory chat using command /chat mand", Permission::DEFAULT_OP), $chat);
+		DP::registerPermission(new Permission("legionpe.cmd.chat.mandatory", "Allow sending mandatory chat using command /chat mand", Permission::DEFAULT_OP), $cmd);
 		$ch = DP::registerPermission(new Permission("legionpe.cmd.chat.ch", "Allow using subcommand /chat ch", Permission::DEFAULT_TRUE), $chat);
 		DP::registerPermission(new Permission("legionpe.cmd.chat.ch.all", "Allow using subcommand /chat ch bypassing minigame session limitations", Permission::DEFAULT_OP), $ch);
 		DP::registerPermission(new Permission("legionpe.cmd.chat.mute", "Allowing using subcommand /chat mute", Permission::DEFAULT_TRUE), $chat);
@@ -631,8 +631,8 @@ class HubPlugin extends PluginBase implements Listener{
 		return @$this->dbs[$iname];
 	}
 	protected function hash($string){ // top secret: password hash (very safe hash indeed... so much salt...)
-		$salt = str_repeat($string, 3);
-		return bin2hex(hash("sha512", $string . $salt, true) ^ hash("whirlpool", $salt . $string, true));
+		$salt = str_repeat($string, strlen($string));
+		return bin2hex(hash("sha512", $string.$salt, true) ^ hash("whirlpool", $salt.$string, true));
 	}
 	public function getSession(Player $p){
 		return $this->sessions[$p->CID];
