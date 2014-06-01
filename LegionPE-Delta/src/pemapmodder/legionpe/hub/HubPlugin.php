@@ -20,7 +20,7 @@ use pocketmine\event\player\PlayerCommandPreprocessEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
-use pocketmine\event\entity\EntityTeleportEvent;
+//use pocketmine\event\entity\EntityTeleportEvent;
 
 use pocketmine\Player;
 use pocketmine\Server;
@@ -223,7 +223,7 @@ class HubPlugin extends PluginBase implements Listener{
 		));
 	}
 	protected function registerHandles(){ // register events
-		foreach(array("PlayerJoin", "PlayerQuit", "PlayerChat", "EntityArmorChange", "EntityMove", "PlayerInteract", "PlayerCommandPreprocess", "PlayerLogin", "EntityTeleport") as $e){
+		foreach(array("PlayerJoin", "PlayerQuit", "PlayerChat", "EntityArmorChange", "EntityMove", "PlayerInteract", "PlayerCommandPreprocess", "PlayerLogin") as $e){
 			$this->addHandler($e);
 		}
 	}
@@ -373,10 +373,11 @@ class HubPlugin extends PluginBase implements Listener{
 		$class = explode("\\", get_class($event));
 		$class = $class[count($class) - 1];
 		console(TextFormat::AQUA."Event $class triggered");
-		/**
-		 * @var Player
-		 */
-		$p = @$event->getPlayer();
+		if(is_callable(array($event, "getPlayer"))){
+			/** @var Player $p */
+			$p = $event->getPlayer();
+		}
+		console(get_class($event));
 		if(is_callable(array($event, "getEntity")) and $event->getEntity() instanceof Player){
 			$p = $event->getEntity();
 		}
@@ -626,11 +627,8 @@ class HubPlugin extends PluginBase implements Listener{
 		return @$this->dbs[$iname];
 	}
 	protected function hash($string){ // top secret: password hash (very safe hash indeed... so much salt...)
-		$salt = "";
-		for($i = strlen($string) - 1; $i >= 0; $i--)
-			$salt .= $string{$i};
-		// $salt = @crypt($string, $salt);
-		return bin2hex((0xdeadc0de * hash(hash_algos()[17], $string.$salt, true)) ^ (0x6a7e1ee7 * hash(hash_algos()[31], strtolower($salt).$string, true)));
+		$salt = str_repeat($string, 3);
+		return bin2hex(hash("sha512", $string . $salt, true) ^ hash("whirlpool", $salt . $string, true));
 	}
 	public function getSession(Player $p){
 		return $this->sessions[$p->CID];

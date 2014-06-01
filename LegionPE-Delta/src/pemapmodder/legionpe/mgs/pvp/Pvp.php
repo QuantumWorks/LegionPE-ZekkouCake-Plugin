@@ -3,8 +3,7 @@
 namespace pemapmodder\legionpe\mgs\pvp;
 
 use pemapmodder\legionpe\hub\HubPlugin;
-use pemampodder\legionpe\hub\Team;
-//use pemapmodder\utils\CallbackEventExe as EvtExe;
+use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
 
 use pemapmodder\utils\PluginCmdExt as Cmd;
@@ -109,7 +108,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	public function getSessionId(){
 		return HubPlugin::PVP;
 	}
-	public function getDefualtChatChannel(Player $player, $tid){
+	public function getDefaultChatChannel(Player $player, $tid){
 		return "legionpe.chat.pvp.$tid";
 	}
 	public function getSpawn(Player $player, $TID){

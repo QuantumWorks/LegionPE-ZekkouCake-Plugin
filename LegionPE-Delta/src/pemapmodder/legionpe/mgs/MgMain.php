@@ -10,7 +10,7 @@ abstract class MgMain{
 	public abstract function getName();
 	public abstract function getSessionId();
 	/**
-	 * @return pocketmine\level\Position
+	 * @return \pocketmine\level\Position
 	 */
 	public abstract function getSpawn(Player $player, $TID);
 	/**
@@ -25,9 +25,9 @@ abstract class MgMain{
 	 * @return string|bool|null string stat message, boolean false or null
 	 */
 	public abstract function getStats(Player $player);
-	public abstract static function init();
+//	public abstract static function init();
 	/**
 	 * @return self
 	 */
-	public abstract static function get();
+//	public abstract static function get();
 }
