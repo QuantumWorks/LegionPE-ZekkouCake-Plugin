@@ -118,6 +118,10 @@ class HubPlugin extends PluginBase implements Listener{
 		$this->initCmds();
 		echo ".";
 		$this->initRanks();
+		echo ".";
+		$this->getServer()->loadLevel("world_pvp");
+		$this->getServer()->loadLevel("world_parkour");
+		$this->getServer()->loadLevel("world_spleef");
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
 	}
 	public function onDisable(){

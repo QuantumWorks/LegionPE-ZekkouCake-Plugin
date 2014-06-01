@@ -7,7 +7,8 @@ use pemapmodder\legionpe\hub\HubPlugin;
 use pemapmodder\legionpe\mgs\MgMain;
 
 use pemapmodder\utils\CallbackEventExe;
-
+use pocketmine\event\entity\EntityMoveEvent;
+use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\block\Block;
@@ -16,8 +17,17 @@ use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 
 class Main extends MgMain implements Listener{
+	/**
+	 * @var Arena[]
+	 */
 	public $arenas = array();
+	/**
+	 * @var int[]
+	 */
 	public $sessions = array();
+	/**
+	 * @var \pocketmine\permission\PermissionAttachment[]
+	 */
 	protected $atchmts = array();
 	public function __construct(){
 		$this->hub = HubPlugin::get();
@@ -36,15 +46,16 @@ class Main extends MgMain implements Listener{
 				array("player\\PlayerInteractEvent", "onInteract"),) as $ev)
 			$pm->registerEvent("pocketmine\\event\\".$ev[0], $this, EventPriority::HIGH, new CallbackEventExe(array($this, $ev[1])), HubPlugin::get());
 	}
-	public function onMove(Event $evt){
-		if($evt->getEntity() instanceof Player and $evt->getEntity()->level->getName() === "world_spleef" and isset($this->sessions[$evt->getEntity()->CID])){
+	public function onMove(EntityMoveEvent $evt){
+		if($evt->getEntity() instanceof Player and $evt->getEntity()->getLevel()->getName() === "world_spleef" and isset($this->sessions[$evt->getEntity()->CID])){
 			if(($sid = $this->sessions[$evt->getEntity()->CID]) !== -1)
 				if($this->arenas[$sid]->onMove($evt->getEntity()) === false)
 					$evt->setCancelled(true);
 		}
 	}
-	public function onInteract(Event $evt){
-		if($evt->getPlayer()->level->getName() !== Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
+	public function onInteract(PlayerInteractEvent $evt){
+		if($evt->getPlayer()->getLevel()->getName() !==
+				Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
 			return;
 		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1){
 			if($this->arenas[$sid]->onInteract($evt) === false)
@@ -83,7 +94,7 @@ class Main extends MgMain implements Listener{
 	public function onQuitMg(Player $p){
 		if(!isset($this->sessions[$p->CID])) return;
 		if(($s = $this->sessions[$p->CID]) !== -1){
-			$this->arenas[$sid]->quit($event->getPlayer(), "logout");
+			$this->arenas[$s]->quit($p, "logout");
 		}
 		unset($this->sessions[$p->CID]);
 		$p->removeAttachment($this->atchmts[$p->CID]);
@@ -96,7 +107,7 @@ class Main extends MgMain implements Listener{
 		return HubPlugin::SPLEEF;
 	}
 	public function getSpawn(Player $player, $TID){
-		return Builder::spawn();
+		return Builder::spleefSpawn();
 	}
 	public function getDefaultChatChannel(Player $player, $TID){
 		return "legionpe.chat.spleef.public";

@@ -55,7 +55,4 @@ class Builder extends RawLocs{
 				return new Space(new Vector3(130, 82, 104), new Vector3(126, 82, 104), parent::spleef());
 		}
 	}
-	public final static function spawn(){
-		return new Position(128, 83, 123, parent::spleef());
-	}
 }

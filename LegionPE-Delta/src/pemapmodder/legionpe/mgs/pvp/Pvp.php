@@ -200,7 +200,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 			$player->getInventory()->setItem($slot, Item::get($item[0], $item[1], $item[2]));
 		}
 		foreach($data["arm"] as $slot=>$armor){
-			$player->getInventort()->setItem($player->getInventory()->getSize() + ($slot & 0b11), Item::get($armor));
+			$player->getInventory()->setItem($player->getInventory()->getSize() + ($slot & 0b11), Item::get($armor));
 		}
 	}
 	public static function init(){

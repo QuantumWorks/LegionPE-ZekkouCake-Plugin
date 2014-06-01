@@ -206,7 +206,7 @@ class Arena extends PluginTask{
 			if(($diff = time() - $time) > 15)
 				continue;
 			$player->sendMessage("Our stupid spleef-hole guesser thinks that you fell in a hole mined by $name $diff second(s) ago!");
-			if($name === $player->username){
+			if($name === $player->getName()){
 				$player->sendMessage("Minecraft basic rules #1: Never mine directly below yourself.");
 				continue;
 			}
@@ -250,7 +250,7 @@ class Arena extends PluginTask{
 			}
 		}
 		if($two){
-			$this->broadcast("Now it is the grand deathmatch between team ".Team::get(max($team))["name"]." and team ".Team::get(min($team))["name"]"!");
+			$this->broadcast("Now it is the grand deathmatch between team ".Team::get(max($team))["name"]." and team ".Team::get(min($team))["name"]."!");
 		}
 	}
 }

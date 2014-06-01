@@ -12,7 +12,7 @@ use pempamodder\legionpe\mgs\ctf\Main as CTF;
 
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\CallbackPluginTask;
-
+use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
@@ -91,7 +91,7 @@ class Hub implements CmdExe, Listener{
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerJoinEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onJoin")), HubPlugin::get());
 		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerCommandPreprocessEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onPreCmd")), HubPlugin::get());
 	}
-	public function onChat(Event $evt){
+	public function onChat(PlayerChatEvent $evt){
 		$pfxs = HubPlugin::get()->getDb($p = $evt->getPlayer())->get("prefixes");
 		$team = HubPlugin::get()->getDb($p)->get("team");
 		if($team === false){
@@ -100,8 +100,8 @@ class Hub implements CmdExe, Listener{
 		}
 		$pfxs["team"] = Team::get($team)["name"];
 		$rec = array();
+		$chan = $this->pchannels[$p->CID];
 		foreach($evt->getRecipients() as $r){
-			$chan = $this->pchannels[$p->CID];
 			if($r->hasPermission($chan.".read")){
 				$rec[] = $r;
 				break;
@@ -110,6 +110,7 @@ class Hub implements CmdExe, Listener{
 		$evt->setRecipients($rec);
 		$format = $this->getPrefixes($p)."%s: %s";
 		$evt->setFormat($format);
+		console("[CHAT] <$chan>: ".$this->getPrefixes($p).$p->getDisplayName().": ".$evt->getMessage());
 	}
 	public function onQuitCmd($issuer, array $args){
 		if(!($issuer instanceof Player)){
@@ -140,7 +141,7 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function getMgClass(Player $player){
-		switch($this->hub->getSession($issuer)){
+		switch($this->hub->getSession($player)){
 			case HubPlugin::PVP:
 				$out = "pvp\\Pvp";
 				break;
@@ -158,7 +159,7 @@ class Hub implements CmdExe, Listener{
 		}
 		return "pemapmodder\\legionpe\\mgs\\$out";
 	}
-	public function onQuit(Event $event){
+	public function onQuit(PlayerQuitEvent $event){
 		if(($s = $this->hub->sessions[$event->getPlayer()->CID]) > HubPlugin::HUB and $s <= HubPlugin::ON)
 			$this->server->dispatchCommand($event->getPlayer(), "quit");
 	}
