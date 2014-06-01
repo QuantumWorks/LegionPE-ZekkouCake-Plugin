@@ -69,7 +69,6 @@ class Pvp extends MgMain implements CmdExe, Listener{
 			case "pvp":
 				$this->equip($isr);
 				return "PvP kit given!";
-				
 			case "class":
 				
 		}
@@ -198,10 +197,10 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$rk = $this->hub->getDb($player)->get("kitpvp")["class"];
 		$data = $this->hub->config->get("kitpvp")["auto-equip"][$rk];
 		foreach($data["inv"] as $slot=>$item){
-			$player->setSlot($slot, Item::get($item[0], $item[1], $item[2]));
+			$player->getInventory()->setItem($slot, Item::get($item[0], $item[1], $item[2]));
 		}
 		foreach($data["arm"] as $slot=>$armor){
-			$player->setArmorSlot($slot, Item::get($armor));
+			$player->getInventort()->setItem($player->getInventory()->getSize() + ($slot & 0b11), Item::get($armor));
 		}
 	}
 	public static function init(){
