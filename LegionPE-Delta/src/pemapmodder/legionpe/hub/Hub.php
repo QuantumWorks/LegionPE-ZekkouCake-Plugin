@@ -3,15 +3,19 @@
 namespace pemapmodder\legionpe\hub;
 
 use pemapmodder\legionpe\geog\RawLocs as RL;
-use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
 use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Parkour;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
-use pempamodder\legionpe\mgs\ctf\Main as CTF;
+use pemapmodder\legionpe\mgs\ctf\Main as CTF;
 
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\CallbackPluginTask;
+use pocketmine\command\CommandSender;
+use pocketmine\event\entity\EntityMoveEvent;
+use pocketmine\event\player\PlayerCommandPreprocessEvent;
+use pocketmine\event\player\PlayerInteractEvent;
+use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -31,10 +35,13 @@ use pocketmine\permission\Permission as Perm;
 class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
-	protected $writePA = array();
 	protected $mutePA = array();
 	protected $pchannels = array();
 	protected $channels = array();
+	/**
+	 * @var \pocketmine\permission\PermissionAttachment[][] $readPA access with $readPA[$CID][$channel] (no ".read" at the end of $channel)
+	 */
+	protected $readPA = array();
 	public static function defaultChannels(){
 		$r = array(
 			"legionpe.chat.public",
@@ -112,16 +119,16 @@ class Hub implements CmdExe, Listener{
 		$evt->setFormat($format);
 		console("[CHAT] <$chan>: ".$this->getPrefixes($p).$p->getDisplayName().": ".$evt->getMessage());
 	}
-	public function onQuitCmd($issuer, array $args){
+	public function onQuitCmd(CommandSender $issuer, array $args){
 		if(!($issuer instanceof Player)){
 			$issuer->sendMessage("Please run this command in-game.");
 			return true;
 		}
 		$class = $this->getMgClass($issuer);
-		$class::get()->onQuitMg($issuer);
+		eval("$class::get()->onQuitMg(\$issuer, \$args);");
 		return true;
 	}
-	public function onStatCmd($issuer, array $args){
+	public function onStatCmd(CommandSender $issuer, array $args){
 		if(!($issuer instanceof Player)){
 			$issuer->sendMessage("Please run this command in-game.");
 			return true;
@@ -131,16 +138,20 @@ class Hub implements CmdExe, Listener{
 			$issuer->sendMessage("You are not in a minigame!");
 		}
 		else{
-			$msg = $class::get()->getStats();
+			$msg = "";
+			eval("\$msg = $class::get()->getStats(\$issuer, \$args)");
 			if(!is_string($msg)){
-				$issuer->sendMessage("Stats unavailable.");
+				$issuer->sendMessage("Stats is unavailable here.");
 			}
 			else{
 				$issuer->sendMessage($msg);
 			}
 		}
 	}
-	public function getMgClass(Player $player){
+	public function getMgClass(Player $player, $acceptNonMg = false){
+		if($acceptNonMg and $this->hub->getSession($player) === HubPlugin::HUB or $this->hub->getSession($player) === HubPlugin::SHOP){
+			return ($this->hub->getSession($player) === HubPlugin::HUB) ? get_class():"pemapmodder\\legionpe\\hub\\Shops";
+		}
 		switch($this->hub->getSession($player)){
 			case HubPlugin::PVP:
 				$out = "pvp\\Pvp";
@@ -169,7 +180,7 @@ class Hub implements CmdExe, Listener{
 			if($pfxType === "team")
 				$pf = "{".ucfirst(Team::get(HubPlugin::get()->getDb($player)->get("team"))["name"])."}";
 			else $pf = ucfirst(HubPlugin::get()->getDb($player)->get("prefixes")[$pfxType]);
-			if(!$this->isFiltered($filter, $p->level->getName()) and strlen(str_replace(" ", "", $pf)) > 0)
+			if(!$this->isFiltered($filter, $player->getLevel()->getName()) and strlen(str_replace(" ", "", $pf)) > 0)
 				$prefix .= "$pf|";
 		}
 		return $prefix;
@@ -191,12 +202,12 @@ class Hub implements CmdExe, Listener{
 				return false;
 		}
 	}
-	public function onInteractLP(Event $evt){
+	public function onInteractLP(PlayerInteractEvent $evt){
 		$p = $evt->getPlayer();
-		if(HubPlugin::getRank($p) !== "staff")
+		if(HubPlugin::get()->getRank($p) !== "staff")
 			$evt->setCancelled(true);
 	}
-	public function onMove(Event $evt){
+	public function onMove(EntityMoveEvent $evt){
 		$p = $evt->getEntity();
 		if(!($p instanceof Player))
 			return;
@@ -212,15 +223,15 @@ class Hub implements CmdExe, Listener{
 	protected function joinMg(Player $p, MgMain $mg){
 		$TID = $this->hub->getDb($p)->get("team");
 		if(($reason = $mg->isJoinable($p, $TID)) === true){
-			$this->server->getScheduler()->scheduleDelayedTask(
-					new CallbackPluginTask(array($p, "teleport"), $this->hub, $mg->getSpawn($p, $TID)), 40);
+			$this->server->getScheduler()->scheduleDelayedTask(new CallbackPluginTask(array($p, "teleport"), $this->hub, $mg->getSpawn($p, $TID)), 40);
 			$p->teleport($mg->getSpawn($p, $TID));
 			$p->sendMessage("You are teleported to the");
 			$p->sendMessage("  ".$mg->getName()." world! You might lag!");
 			$this->teleports[$p->CID] = time();
 			$this->hub->sessions[$p->CID] = $mg->getSessionId();
-			if(!$this->hub->getDb($p)->get("mute"))
+			if(!$this->hub->getDb($p)->get("mute")){
 				$this->setChannel($p, $mg->getDefaultChatChannel($p, $TID));
+			}
 			$mg->onJoinMg($p);
 		}
 		else{
@@ -229,7 +240,7 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
-		$oldChannel = isset($this->pchannels[$player->CID]) ? $this->pchannels[$player->CID]:false;
+		$oldChannel = isset($this->pchannels[$player->CID]) ? $this->pchannels[$player->CID]:false; // only remove the write channel
 		$this->pchannels[$player->CID] = $channel;
 		if(!$writeOnly){
 			$this->readPA[$player->CID][$channel] = $player->addAttachment($this->hub, $channel.".read", true);
@@ -242,10 +253,16 @@ class Hub implements CmdExe, Listener{
 	public function getChannel(Player $player){
 		return $this->pchannels[$player->CID];
 	}
-	public function onJoin(Event $event){
+	public function getWriteChannel(Player $player){
+		return $this->pchannels[$player->CID];
+	}
+	public function getReadChannels(Player $player){
+		return $this->readPA[$player->CID];
+	}
+	public function onJoin(PlayerJoinEvent $event){
 		$event->getPlayer()->addAttachment($this->hub, "legionpe.chat.mandatory", true);
 	}
-	public function onPreCmd(Event $event){
+	public function onPreCmd(PlayerCommandPreprocessEvent $event){
 		$p = $event->getPlayer();
 		if(substr($event->getMessage(), 0, 1) !== "/"){
 			return;
@@ -255,7 +272,7 @@ class Hub implements CmdExe, Listener{
 		switch($command){
 			case "me":
 				$event->setCancelled(true);
-				foreach(Player::getAll() as $player){
+				foreach($this->server->getOnlinePlayers() as $player){
 					if($this->getChannel($player) === $this->getChannel($p) or $this->getChannel($p) === "legionpe.chat.mandatory")
 						$player->sendMessage("* {$this->getPrefixes($player)}{$player->getDisplayName()} ".implode(" ", $cmd));
 				}
@@ -286,7 +303,7 @@ class Hub implements CmdExe, Listener{
 						}
 						break;
 					case "unmute":
-						while(count($this->mutePA[$isr->CID])){
+						while(count($this->mutePA[$isr->CID]) > 0){
 							$att = array_shift($this->mutePA[$isr->CID]);
 							$isr->removeAttachment($att);
 						}
@@ -296,12 +313,14 @@ class Hub implements CmdExe, Listener{
 							return "You don't have permission to use /chat ch";
 						if(isset($args[0])){
 							$ch = array_shift($args);
-							if($isr->hasPermission($ch = $this->parseChannel($isr, $ch))){
+							if(($ch = $this->parseChannel($isr, $ch)) !== false){
 								return "Your chat channel has been set to \"$ch\"";
 							}
 							return "You don't have permission to create/join this chat channel";
 						}
+						return false;
 				}
+				break;
 			case "help":
 				$output = "Showing help of /chat, /mute and /unmute:\n";
 			default:
@@ -311,13 +330,10 @@ class Hub implements CmdExe, Listener{
 				$output .= "/chat ch <channel> Join a chat channel";
 				return $output;
 		}
+		return true;
 	}
 	public function parseChannel(Player $player, $ch){
-		$mg = "";
-		$s = $this->hub->getSession($player);
-		switch($ch){
-			case 0:break; // TODO
-		}
+		$mg = $this->getMgClass($player);
 	}
 	public function addCoins(Player $player, $coins, $reason = "you-guess-why", $silent = false){
 		$this->hub->getDb($player)->set("coins", $this->hub->getDb($player)->get("coins") + $coins);
