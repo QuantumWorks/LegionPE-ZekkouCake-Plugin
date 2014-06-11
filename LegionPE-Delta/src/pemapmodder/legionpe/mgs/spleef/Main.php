@@ -51,17 +51,17 @@ class Main extends MgMain implements Listener{
 		if(!($p instanceof Player)){
 			return;
 		}
-		if($p->getLevel()->getName() === "world_spleef" and isset($this->sessions[$p->CID])){
-			if(($sid = $this->sessions[$p->CID]) !== -1)
+		if($p->getLevel()->getName() === "world_spleef" and isset($this->sessions[$p->getID()])){
+			if(($sid = $this->sessions[$p->getID()]) !== -1)
 				if($this->arenas[$sid]->onMove($p) === false)
 					$evt->setCancelled(true);
 		}
 	}
 	public function onInteract(PlayerInteractEvent $evt){
 		if($evt->getPlayer()->getLevel()->getName() !==
-				Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->CID]))
+				Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->getID()]))
 			return;
-		if(($sid = $this->sessions[$evt->getPlayer()->CID]) !== -1){
+		if(($sid = $this->sessions[$evt->getPlayer()->getID()]) !== -1){
 			if($this->arenas[$sid]->onInteract($evt) === false)
 				$evt->setCancelled(true);
 		}
@@ -77,7 +77,7 @@ class Main extends MgMain implements Listener{
 	public function join($SID, Player $player){
 		if(($reason = $this->arenas[$SID]->isJoinable()) === true){
 			$this->arenas[$SID]->join($player);
-			$this->sessions[$player->CID] = $SID;
+			$this->sessions[$player->getID()] = $SID;
 		}
 		else{
 			$player->sendMessage("You can't join this arena! Reason: $reason");
@@ -86,23 +86,23 @@ class Main extends MgMain implements Listener{
 	public function quit($from, Player $player){
 		$isTeam = count(explode(".", Hub::get()->getChannel($player))) === 5;
 		Hub::get()->setChannel($player, $isTeam ? "legionpe.chat.spleef.".$this->hub->getDb($player)->get("team"):"legionpe.chat.spleef.public");
-		$this->sessions[$player->CID] = -1;
+		$this->sessions[$player->getID()] = -1;
 	}
 	public function getChance(Player $player){
 		return $this->hub->config->get("spleef")["chances"][$this->hub->getRank($player)];
 	}
 	public function onJoinMg(Player $p){
-		$this->sessions[$p->CID] = -1;
-		$this->atchmts[$p->CID] = $p->addAttachment($this->hub, "legionpe.cmd.mg.spleef", true);
+		$this->sessions[$p->getID()] = -1;
+		$this->atchmts[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.spleef", true);
 	}
 	public function onQuitMg(Player $p){
-		if(!isset($this->sessions[$p->CID])) return;
-		if(($s = $this->sessions[$p->CID]) !== -1){
+		if(!isset($this->sessions[$p->getID()])) return;
+		if(($s = $this->sessions[$p->getID()]) !== -1){
 			$this->arenas[$s]->quit($p, "logout");
 		}
-		unset($this->sessions[$p->CID]);
-		$p->removeAttachment($this->atchmts[$p->CID]);
-		unset($this->atchmts[$p->CID]);
+		unset($this->sessions[$p->getID()]);
+		$p->removeAttachment($this->atchmts[$p->getID()]);
+		unset($this->atchmts[$p->getID()]);
 	}
 	public function getName(){
 		return "Spleef";
@@ -133,4 +133,7 @@ class Main extends MgMain implements Listener{
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
 	}
+}
+function console($msg){
+	HubPlugin::get()->getLogger()->info($msg);
 }

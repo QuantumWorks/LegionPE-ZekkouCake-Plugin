@@ -2,6 +2,10 @@
 
 namespace pemapmodder\smg;
 
+use pocketmine\event\entity\EntityMotionEvent;
+use pocketmine\event\entity\EntityMoveEvent;
+use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\event\player\PlayerCommandPreprocessEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\CommandSender as Issuer;
@@ -12,7 +16,7 @@ use pocketmine\event\Listener;
 use pocketmine\math\Vector3;
 use pocketmine\plugin\EventExecutor;
 
-class ActionLogger extends EventExecutor implements Listener{
+class ActionLogger implements EventExecutor, Listener{
 	const CHAT_NO = "no chat";
 	const CHAT_CHAT = "norm chat";
 	const CHAT_ME = "/me chat";
@@ -23,7 +27,7 @@ class ActionLogger extends EventExecutor implements Listener{
 	public $motionLog = [];
 	public function __construct(Main $plugin){
 		$this->main = $plugin;
-		$this->server = Sevrer::getInstance();
+		$this->server = Server::getInstance();
 		$this->pm = $this->server->getPluginManager();
 		$this->init();
 		$console = new Console;
@@ -33,34 +37,32 @@ class ActionLogger extends EventExecutor implements Listener{
 	}
 	protected function init(){
 		$pm = $this->pm;
-		foreach([["player", "chat"], ["entity", "move"], ["entity", "motion"], ["player", "commandPreprocess"]] as $event){
-			$pm->registerEvent("pocketmine\\event\\".$event[0]."\\".ucfirst($event[0]).ucfirst($event[1])."Event",
-					$this, EventPriority::MONITOR, $this, $this->main, true);
+		$pm->registerEvents($this, $this->main);
+//		foreach([["player", "chat"], ["entity", "move"], ["entity", "motion"], ["player", "commandPreprocess"]] as $event){
+//			$pm->registerEvent("pocketmine\\event\\".$event[0]."\\".ucfirst($event[0]).ucfirst($event[1])."Event",
+//					$this, EventPriority::MONITOR, $this, $this->main, true);
+//		}
+	}
+	public function onChat(PlayerChatEvent $event){
+		$this->logChat($event->getPlayer(), $event->getMessage(), self::CHAT_CHAT);
+	}
+	public function onPreCmd(PlayerCommandPreprocessEvent $event){
+		$cmd = strstr($event->getMessage(), " ", true);
+		if(in_array($cmd, ["/me", "/say"])){
+			$this->logChat($event->getPlayer(), substr(strstr($event->getMessage(), " "), 1), $cmd === "/say" ? self::CHAT_SAY:self::CHAT_ME);
 		}
 	}
-	public function execute(Listener $listener, Event $event){
-		switch(strtolower(array_slice(explode("\\", get_class($event)), -1)[0])){
-			case "playerchatevent":
-				$this->logChat($event->getPlayer(), $event->getMessage(), self::CHAT_CHAT);
-				break;
-			case "playercommandpreprocessevent":
-				$cmd = strstr($event->getMessage(), " ", true);
-				if(in_array($cmd, ["/me", "/say"])){
-					$this->logChat($event->getPlayer(), substr(strstr($event->getMessage(), " "), 1), $cmd === "/say" ? self::CHAT_SAY:self::CHAT_ME);
-				}
-				break;
-			case "entitymoveevent":
-				break;
-			case "entitymotionevent":
-				if(!($event->getEntity() instanceof Player)){
-					return;
-				}
-				if($event->getEntity()->getGamemode() & 0x01){
-					return;
-				}
-				$this->logMotion($event->getEntity(), $event->getVector());
-				break;
+	public function onMove(EntityMoveEvent $event){
+	}
+	public function onMotion(EntityMotionEvent $event){
+		$e = $event->getEntity();
+		if(!($e instanceof Player)){
+			return;
 		}
+		if($e->getGamemode() & 0x01){
+			return;
+		}
+		$this->logMotion($e, $event->getVector());
 	}
 	public function logChat(Issuer $speaker, $message, $type){
 		$this->chatLog[] = [$speaker, $message, $type, time()];
@@ -70,7 +72,7 @@ class ActionLogger extends EventExecutor implements Listener{
 		return true;
 	}
 	public function logMotion(Player $player, Vector3 $vectors){
-		$this->motionLog[$player->CID][] = [$vectors, microtime(true)];
+		$this->motionLog[$player->getID()][] = [$vectors, microtime(true)];
 	}
 	public function exportChatBacklog(){
 		$output = "";

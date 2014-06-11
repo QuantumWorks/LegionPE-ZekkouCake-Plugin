@@ -3,11 +3,17 @@
 namespace pemapmodder\legionpe\mgs\ctf;
 
 use pemapmodder\legionpe\geog\RawLocs as ParentClass;
-
+use pocketmine\block\Block;
 use pocketmine\Server;
 use pocketmine\level\Position as Pos;
 
 abstract class Rawlocs extends ParentClass{
+	const FLAG_0 = 0b00000100;
+	const FLAG_1 = 0b00000101;
+	const FLAG_2 = 0b00000110;
+	const FLAG_3 = 0b00000111;
+	const FLAG_RETURN = 0b00001000;
+
 	public final static function baseName(){
 		return "world_base_ctf";
 	}
@@ -34,5 +40,16 @@ abstract class Rawlocs extends ParentClass{
 			case 4 & 0b11:
 				return new Pos(self::world());
 		}
+	}
+	public final static function identifyBlock(Block $block){
+		$loc = $block->getFloorX().",".$block->getFloorY().",".$block->getFloorZ();
+		switch($loc){
+			case "128,127,128": // a random thing
+				return false;
+		}
+		return false;
+	}
+	public final static function isBlockBreakable(){
+		return false;
 	}
 }

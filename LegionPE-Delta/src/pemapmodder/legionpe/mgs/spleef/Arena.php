@@ -79,7 +79,7 @@ class Arena extends PluginTask{
 	public function join(Player $player){
 		if(!$this->isJoinable())
 			return false;
-		$this->players[$player->CID] = $player;
+		$this->players[$player->getID()] = $player;
 		$this->broadcast($player->getDisplayName()." has joined this arena.");
 		$player->sendMessage("You have joined arena {$this->id}!");
 		$player->sendMessage("There are now ".count($this->players)." players in this arena, ".($this->pcnt - count($this->players))." more needed.");
@@ -93,7 +93,7 @@ class Arena extends PluginTask{
 		return true;
 	}
 	public function quit(Player $player, $reason = "Unknown reason"){
-		unset($this->players[$player->CID]);
+		unset($this->players[$player->getID()]);
 		$this->broadcast($player->getDisplayName()." left. Reason: $reason.");
 	}
 	public function broadcast($message, $ret = null){
@@ -127,7 +127,7 @@ class Arena extends PluginTask{
 	protected function start(){
 		$this->runtimeTicks = 20 * 60 * 3;
 		foreach($this->players as $p)
-			$this->lastLevels[$p->CID] = array(0, time());
+			$this->lastLevels[$p->getID()] = array(0, time());
 	}
 	protected function end($reason){
 		$this->broadcast("The match ended. Reason: $reason.");
@@ -162,7 +162,7 @@ class Arena extends PluginTask{
 		}
 		$new = $this->getLevel($player);
 		$time = time();
-		$old = $this->lastLevels[$player->CID];
+		$old = $this->lastLevels[$player->getID()];
 		$ol = $old[0];
 		if($ol !== $new){
 			$player->sendMessage("You have fallen into level $new!");
@@ -173,7 +173,7 @@ class Arena extends PluginTask{
 				$this->stupidGuessHole($player, $new - $ol);
 			}
 		}
-		$this->lastLevels[$player->CID] = array($new, $time);
+		$this->lastLevels[$player->getID()] = array($new, $time);
 		if($new !== $this->floors)
 			return true;
 		$this->kick($player, "Falling out of the arena");

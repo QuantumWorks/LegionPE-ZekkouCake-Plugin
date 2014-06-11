@@ -13,3 +13,6 @@ abstract class RawLocs extends ParentClass{
 		return new CS(new V3(84, 0, 71), new V3(99, 127, 86), parent::pvp());
 	}
 }
+function console($msg){
+	HubPlugin::get()->getLogger()->info($msg);
+}

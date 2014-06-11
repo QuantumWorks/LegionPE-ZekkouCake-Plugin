@@ -82,7 +82,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 			$cause->sendMessage("You killed {$p->getDisplayName()}!");
 			$cause->sendMessage("Team points +2!");
 			Team::get($this->hub->getDb($cause)->get("team"))["points"] += 2;
-			$this->pvpDies[$p->CID] = true;
+			$this->pvpDies[$p->getID()] = true;
 			$p->sendMessage("You have been killed by {$cause->getDisplayName()}!");
 		}
 		Team::get($this->hub->getDb($p)->get("team"))["points"]--;
@@ -95,11 +95,11 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$event->setMessage("");
 	}
 	public function onJoinMg(Player $p){
-		$this->attachments[$p->CID] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pvp", true);
+		$this->attachments[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pvp", true);
 	}
 	public function onQuitMg(Player $p){
-		$p->removeAttachment($this->attachment[$p->CID]);
-		unset($this->attachments[$p->CID]);
+		$p->removeAttachment($this->attachment[$p->getID()]);
+		unset($this->attachments[$p->getID()]);
 	}
 	public function getName(){
 		return "KitPvP";
@@ -128,12 +128,12 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	}
 	public function onRespawn(Event $event){
 		$p = $event->getPlayer();
-		if(@$this->pvpDies[$p->CID] !== true)
+		if(@$this->pvpDies[$p->getID()] !== true)
 			return;
 		$p->teleport(RawLocs::pvpSpawn());
 		$this->equip($p);
-		$this->pvpDies[$p->CID] = false;
-		unset($this->pvpDies[$p->CID]);
+		$this->pvpDies[$p->getID()] = false;
+		unset($this->pvpDies[$p->getID()]);
 	}
 	public function onHurt(Event $event){
 		$p = $event->getEntity();
@@ -215,4 +215,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];
 	}
+}
+function console($msg){
+	HubPlugin::get()->getLogger()->info($msg);
 }

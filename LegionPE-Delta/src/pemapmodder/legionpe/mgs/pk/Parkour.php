@@ -83,11 +83,11 @@ class Parkour extends MgMain implements CmdExe, Listener{
 		}
 	}
 	public function onJoinMg(Player $p){
-		$this->attachments[$p->CID] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pk", true);
+		$this->attachments[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pk", true);
 	}
 	public function onQuitMg(Player $p){
-		$p->removeAttachment($this->attachments[$p->CID]);
-		unset($this->attachments[$p->CID]);
+		$p->removeAttachment($this->attachments[$p->getID()]);
+		unset($this->attachments[$p->getID()]);
 	}
 	public function getName(){
 		return "Parkour";
@@ -111,4 +111,7 @@ class Parkour extends MgMain implements CmdExe, Listener{
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
 	}
+}
+function console($msg){
+	HubPlugin::get()->getLogger()->info($msg);
 }

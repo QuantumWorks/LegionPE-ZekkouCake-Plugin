@@ -107,7 +107,7 @@ class Hub implements CmdExe, Listener{
 		}
 		$pfxs["team"] = Team::get($team)["name"];
 		$rec = array();
-		$chan = $this->pchannels[$p->CID];
+		$chan = $this->pchannels[$p->getID()];
 		foreach($evt->getRecipients() as $r){
 			if($r->hasPermission($chan.".read")){
 				$rec[] = $r;
@@ -174,7 +174,7 @@ class Hub implements CmdExe, Listener{
 		return $simple ? (strstr($out, "\\", true)."."):"\\pemapmodder\\legionpe\\mgs\\$out";
 	}
 	public function onQuit(PlayerQuitEvent $event){
-		if(($s = $this->hub->sessions[$event->getPlayer()->CID]) > HubPlugin::HUB and $s <= HubPlugin::ON)
+		if(($s = $this->hub->sessions[$event->getPlayer()->getID()]) > HubPlugin::HUB and $s <= HubPlugin::ON)
 			$this->server->dispatchCommand($event->getPlayer(), "quit");
 	}
 	protected function getPrefixes(Player $player){
@@ -214,7 +214,7 @@ class Hub implements CmdExe, Listener{
 		$p = $evt->getEntity();
 		if(!($p instanceof Player))
 			return;
-		if(time() - ((int)@$this->teleports[$p->CID]) <= 3)
+		if(time() - ((int)@$this->teleports[$p->getID()]) <= 3)
 			return;
 		if(RL::enterPvpPor()->isInside($p)){
 			$this->joinMg($p, Pvp::get());
@@ -230,8 +230,8 @@ class Hub implements CmdExe, Listener{
 			$p->teleport($mg->getSpawn($p, $TID));
 			$p->sendMessage("You are teleported to the");
 			$p->sendMessage("  ".$mg->getName()." world! You might lag!");
-			$this->teleports[$p->CID] = time();
-			$this->hub->sessions[$p->CID] = $mg->getSessionId();
+			$this->teleports[$p->getID()] = time();
+			$this->hub->sessions[$p->getID()] = $mg->getSessionId();
 			if(!$this->hub->getDb($p)->get("mute")){
 				$this->setChannel($p, $mg->getDefaultChatChannel($p, $TID));
 			}
@@ -243,24 +243,24 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
-		$oldChannel = isset($this->pchannels[$player->CID]) ? $this->pchannels[$player->CID]:false; // only remove the write channel
-		$this->pchannels[$player->CID] = $channel;
+		$oldChannel = isset($this->pchannels[$player->getID()]) ? $this->pchannels[$player->getID()]:false; // only remove the write channel
+		$this->pchannels[$player->getID()] = $channel;
 		if(!$writeOnly){
-			$this->readPA[$player->CID][$channel] = $player->addAttachment($this->hub, $channel.".read", true);
+			$this->readPA[$player->getID()][$channel] = $player->addAttachment($this->hub, $channel.".read", true);
 		}
 		if(!$reserveOld and $oldChannel !== false){
-			$player->removeAttachment($this->readPA[$player->CID][$oldChannel]);
-			unset($this->readPA[$player->CID][$oldChannel]);
+			$player->removeAttachment($this->readPA[$player->getID()][$oldChannel]);
+			unset($this->readPA[$player->getID()][$oldChannel]);
 		}
 	}
 	public function getChannel(Player $player){
-		return $this->pchannels[$player->CID];
+		return $this->pchannels[$player->getID()];
 	}
 	public function getWriteChannel(Player $player){
-		return $this->pchannels[$player->CID];
+		return $this->pchannels[$player->getID()];
 	}
 	public function getReadChannels(Player $player){
-		return $this->readPA[$player->CID];
+		return $this->readPA[$player->getID()];
 	}
 	public function onJoin(PlayerJoinEvent $event){
 		$event->getPlayer()->addAttachment($this->hub, "legionpe.chat.mandatory", true);
@@ -300,14 +300,14 @@ class Hub implements CmdExe, Listener{
 					return "Please run this command in-game.";
 				switch($subcmd = array_shift($args)){
 					case "mute":
-						$this->mutePA[$isr->CID] = array();
+						$this->mutePA[$isr->getID()] = array();
 						foreach(self::defaultChannels() as $channel){
-							$this->mutePA[$isr->CID][] = $isr->addAttachment($this->hub, "$channel.read", false);
+							$this->mutePA[$isr->getID()][] = $isr->addAttachment($this->hub, "$channel.read", false);
 						}
 						break;
 					case "unmute":
-						while(count($this->mutePA[$isr->CID]) > 0){
-							$att = array_shift($this->mutePA[$isr->CID]);
+						while(count($this->mutePA[$isr->getID()]) > 0){
+							$att = array_shift($this->mutePA[$isr->getID()]);
 							$isr->removeAttachment($att);
 						}
 						break;

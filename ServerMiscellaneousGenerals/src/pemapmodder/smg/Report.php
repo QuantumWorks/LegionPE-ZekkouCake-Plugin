@@ -43,7 +43,7 @@ class Report{
 	public function __construct(Player $player, $type, $details, Issuer $reporter){
 		$this->id = self::$rid++;
 		$this->details = $details;
-		$this->backLog = $type ? Main::get()->getActionLogger()->exportChatBacklog():Main::get()->getActionLogger()->exportMotionBacklog($player->CID);
+		$this->backLog = $type ? Main::get()->getActionLogger()->exportChatBacklog():Main::get()->getActionLogger()->exportMotionBacklog($player->getID());
 		$this->type = $type;
 		$this->reporter = $reporter->getName();
 		$this->reported = $player->getName();

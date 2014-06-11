@@ -1,2 +1,6 @@
 git-io.bat
 .idea/*
+ConsoleScript.php
+*.exe
+php.ini
+*.dll

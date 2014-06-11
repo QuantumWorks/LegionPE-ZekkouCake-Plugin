@@ -46,7 +46,7 @@ class Shops extends MgMain implements Listener{
 	public function isJoinable(){
 		return true;
 	}
-	public function getStats(Player $player, $args){
+	public function getStats(Player $player, array $args = array()){
 		return "This will show your coins. W.I.P. Sorry.";
 	}
 	public static function init(){
