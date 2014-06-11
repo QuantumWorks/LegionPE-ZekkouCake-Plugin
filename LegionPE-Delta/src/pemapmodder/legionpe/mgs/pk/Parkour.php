@@ -104,6 +104,3 @@ class Parkour extends MgMain implements Listener{
 		HubPlugin::get()->statics[get_class()] = new static();
 	}
 }
-function console($msg){
-	HubPlugin::get()->getLogger()->info($msg);
-}

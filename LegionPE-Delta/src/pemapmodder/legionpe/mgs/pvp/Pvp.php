@@ -220,6 +220,3 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		return HubPlugin::get()->statics[get_class()];
 	}
 }
-function console($msg){
-	HubPlugin::get()->getLogger()->info($msg);
-}

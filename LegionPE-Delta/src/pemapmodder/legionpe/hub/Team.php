@@ -149,7 +149,13 @@ namespace pemapmodder\legionpe\hub {
 namespace{
 	if(!function_exists("console")){
 		function console($msg){
-			\pemapmodder\legionpe\hub\HubPlugin::get()->getLogger()->info($msg);
+			$logger = \pemapmodder\legionpe\hub\HubPlugin::get()->getLogger();
+			if(is_callable(array($logger, "info"))){
+				$logger->info($msg);
+			}
+			else{
+				echo "";
+			}
 		}
 	}
 }

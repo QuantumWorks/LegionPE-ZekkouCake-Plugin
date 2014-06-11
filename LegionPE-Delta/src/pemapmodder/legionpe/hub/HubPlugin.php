@@ -693,6 +693,3 @@ class HubPlugin extends PluginBase implements Listener{
 		return Server::getInstance()->getPluginManager()->getPlugin("LegionPE_Delta");
 	}
 }
-function console($msg){
-	HubPlugin::get()->getLogger()->info($msg);
-}
