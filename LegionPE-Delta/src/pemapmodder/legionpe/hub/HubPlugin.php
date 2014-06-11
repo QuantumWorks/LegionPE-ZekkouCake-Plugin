@@ -34,7 +34,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 
-require_once(dirname(__FILE__)."Team.php");
+require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."Team.php");
 
 /**
  * Class HubPlugin

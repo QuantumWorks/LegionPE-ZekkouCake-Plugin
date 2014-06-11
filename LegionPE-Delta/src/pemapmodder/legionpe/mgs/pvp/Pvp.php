@@ -98,7 +98,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$this->attachments[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pvp", true);
 	}
 	public function onQuitMg(Player $p){
-		$p->removeAttachment($this->attachment[$p->getID()]);
+		$p->removeAttachment($this->attachments[$p->getID()]);
 		unset($this->attachments[$p->getID()]);
 	}
 	public function getName(){
@@ -127,6 +127,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		return $output;
 	}
 	public function onRespawn(Event $event){
+		/** @var Player $p */
 		$p = $event->getPlayer();
 		if(@$this->pvpDies[$p->getID()] !== true)
 			return;
@@ -143,12 +144,15 @@ class Pvp extends MgMain implements CmdExe, Listener{
 			$event->setCancelled(true);
 	}
 	public function onAttack(Event $event){
-		if(RawLocs::safeArea()->isInside($event->getPlayer()) and !$event->getPlayer()->hasPermission("legionpe.mg.pvp.spawnattack")){
-			$event->setCancelled(true);
-			$event->getPlayer()->sendMessage("You may not attack people here!");
-		}
-		elseif($this->hub->getTeam($event->getPlayer()) === $this->hub->getTeam($event->getVictim())){
-			$event->setCancelled(true);
+		$p = $event->getPlayer();
+		if($p instanceof Player){
+			if((RawLocs::safeArea()->isInside($p) or RawLocs::safeArea()->isInside($event->getVictim()))and !$p->hasPermission("legionpe.mg.pvp.spawnattack")){
+				$event->setCancelled(true);
+				$p->sendMessage("You may not attack people here!");
+			}
+			elseif($this->hub->getTeam($p) === $this->hub->getTeam($event->getVictim())){
+				$event->setCancelled(true);
+			}
 		}
 	}
 	public function onKill(Player $killer){

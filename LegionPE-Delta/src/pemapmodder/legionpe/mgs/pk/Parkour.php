@@ -7,21 +7,18 @@ use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
 
 use pemapmodder\utils\CallbackEventExe;
-use pemapmodder\utils\PluginCmdExt as Cmd;
-
+use pocketmine\event\entity\EntityMoveEvent;
+use pocketmine\event\player\PlayerInteractEvent;
+use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\block\SignPost;
-use pocketmine\command\Command;
-use pocketmine\command\CommandExecutor as CmdExe;
-use pocketmine\command\CommandSender as Issuer;
-use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\permission\DefaultPermissions as DP;
 use pocketmine\permission\Permission as Perm;
 
-class Parkour extends MgMain implements CmdExe, Listener{
+class Parkour extends MgMain implements Listener{
 	protected $prefixes = array(
 		0=>"", // fix array_search() bug; hope it does xD
 		1=>"easy",
@@ -38,17 +35,12 @@ class Parkour extends MgMain implements CmdExe, Listener{
 		$pm->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
 		$pm->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onInteract")), HubPlugin::get());
 		// permission
-		$cmdPerm = DP::registerPermission(new Perm("legionpe.cmd.mg.pk", "Allow using parkour commands", Perm::DEFAULT_FALSE), $pm->getPermission("legionpe.cmd.mg"));
+		DP::registerPermission(new Perm("legionpe.cmd.mg.pk", "Allow using parkour commands", Perm::DEFAULT_FALSE), $pm->getPermission("legionpe.cmd.mg"));
 	}
-	public function onCommand(Issuer $issuer, Command $cmd, $label, array $args){
-		switch($cmd->getName()){
-			case "stats":
-				return $this->getStats();
-		}
-	}
-	public function onMove(Event $event){
-		if(($p = $event->getEntity()) instanceof Player){
-			if($p->level->getName() === "world_parkour" and ($p->x < 77 and $p->x > 40) and ($p->z < 100 and $p->z > 30)){
+	public function onMove(EntityMoveEvent $event){
+		$p = $event->getEntity();
+		if($p instanceof Player){
+			if($p->getLevel()->getName() === "world_parkour" and ($p->x < 77 and $p->x > 40) and ($p->z < 100 and $p->z > 30)){
 				if($p->y <= RawLocs::fallY()){
 					$p->teleport(new Vector3($p->x, 73, 67));
 					Team::get($this->hub->getDb($p)->get("team"))["points"]--; // Am I sure?
@@ -59,7 +51,7 @@ class Parkour extends MgMain implements CmdExe, Listener{
 	public function getStats(Player $player, array $args = []){
 		return "~~~~~~~~Parkour stats~~~~~~~~\n".str_replace(PHP_EOL, "\n", yaml_emit($this->hub->config->get("parkour")->get("stats")))."\n~~~~~~~~Parkour stats~~~~~~~~";
 	}
-	public function onInteract(Event $event){
+	public function onInteract(PlayerInteractEvent $event){
 		if($event->getBlock() instanceof SignPost){
 			$event->setCancelled(true);
 			if(($pfx = RawLocs::signPrefix($event->getBlock())) !== false){

@@ -23,6 +23,7 @@ class Builder extends RawLocs{
 			$deg = 360 / $players * $j;
 			self::buildPrep(($preps[] = new Position($centre->x + cos(deg2rad($deg)), $centre->y + 4, $centre->z + sin(deg2rad($deg)), $centre->level)), $pfloor, $wall, $ceil, 2);
 		}
+		return $preps;
 		// TODO hollow circular wall; maybe just hand-make it?
 	}
 	public static function buildPrep(Position $pos, Block $floor, Block $wall, Block $ceil, $height){

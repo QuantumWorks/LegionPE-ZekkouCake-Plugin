@@ -11,8 +11,6 @@ use pocketmine\event\entity\EntityMoveEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\Player;
 use pocketmine\Server;
-use pocketmine\block\Block;
-use pocketmine\event\Event;
 use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 

@@ -52,6 +52,7 @@ class Arena extends PluginTask{
 		}
 		$this->refresh();
 		$this->status = 0;
+		/** @var \pocketmine\tile\Sign $tile */
 		foreach(Utils::getTile(Builder::signs($this->id)->getBlockMap()) as $tile){
 			$tile->setText("0 / {$this->pcnt}", "JOINABLE!", "Join Arena {$this->id}");
 		}

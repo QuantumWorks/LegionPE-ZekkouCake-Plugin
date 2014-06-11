@@ -2,11 +2,12 @@
 
 namespace pemapmodder\legionpe\geog;
 
+use pemapmodder\legionpe\hub\Shop;
+
 use pemapmodder\utils\oldapi\Level as Lv;
 use pemapmodder\utils\spaces\CuboidSpace as MySpace;
 
 use pocketmine\math\Vector3;
-use pocketmine\utils\TextFormat as Font;
 
 abstract class RawLocs{
 	public final static function chooseTeamStd(){
@@ -80,7 +81,7 @@ abstract class RawLocs{
 		return new Position(128, 128, 128, self::shop());
 	}
 	/**
-	 * @return Shop
+	 * @return Shop|null
 	 */
 	public final static function evalShopDetail(){
 		return null;

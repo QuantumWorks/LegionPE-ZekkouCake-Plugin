@@ -1,7 +1,6 @@
 <?php
 
 namespace pemapmodder\legionpe\hub {
-
 	use pemapmodder\legionpe\geog\RawLocs as RL;
 	use pemapmodder\utils\DummyPlugin;
 	use pemapmodder\utils\CallbackPluginTask;
@@ -9,13 +8,16 @@ namespace pemapmodder\legionpe\hub {
 	use pocketmine\Player;
 	use pocketmine\Server;
 	use pocketmine\block\Block;
-	use pocketmine\tile\Tile;
 
 	class Team implements \ArrayAccess{
 		// static
 		public static function addPoints($i, $pts){
 			self::get($i)->config["points"] += $pts;
 		}
+		/**
+		 * @param int|Player $i
+		 * @return bool|int Also returns null when unexpected argument type passed, but this should not be documented
+		 */
 		public static function evalI($i){
 			if(is_int($i)) $i &= 0b11;
 			elseif($i instanceof Player) $i = HubPlugin::get()->getDb($i)->get("team");
@@ -25,12 +27,19 @@ namespace pemapmodder\legionpe\hub {
 			}
 			return $i;
 		}
+		/**
+		 * @return Team[]
+		 */
 		public static function getAll(){
 			$r = array();
 			for($i = 0; $i < 4; $i++)
 				$r[$i] = HubPlugin::get()->getTeam($i);
 			return $r;
 		}
+		/**
+		 * @param $i
+		 * @return Team
+		 */
 		public static function get($i){
 			return HubPlugin::get()->getTeam($i);
 		}
@@ -49,15 +58,15 @@ namespace pemapmodder\legionpe\hub {
 			$ts = self::get($team)->config["members-cnt"];
 			$max = max($scores);
 			$percent = ($max - $ts) / $ts * 100;
-			return $ts <= 5;
+			return $percent <= 5;
 		}
 		public static function updateSigns(){
 			for($i = 0; $i < 4; $i++){
 				if(self::canJoin($i)){
-					DummyPlugin::getTile(RL::chooseTeamSigns($i))->setText("Tap me to join", "TEAM ".strtoupper(self::$teams[$i]->config["name"]));
+					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("Tap me to join", "TEAM ".strtoupper(self::getTeam($i)->config["name"]));
 				}
 				else{
-					DummyPlugin::getTile(RL::chooseTeamSigns($i))->setText("TEAM ".strtoupper(self::get($i)->config["name"]), "is now full.", "Come back later", "or join others");
+					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("TEAM ".strtoupper(self::get($i)->config["name"]), "is now full.", "Come back later", "or join others");
 				}
 			}
 		}
@@ -97,6 +106,10 @@ namespace pemapmodder\legionpe\hub {
 		public function save(){
 			file_put_contents($this->path, yaml_emit($this->config));
 		}
+		/**
+		 * @param Player $p
+		 * @return string "SUCCESS" or reason for join failure
+		 */
 		public function join(Player $p){
 			if(HubPlugin::get()->getDb($p)->get("team") !== false){
 				return "Already in a team";
@@ -106,11 +119,15 @@ namespace pemapmodder\legionpe\hub {
 				self::updateSigns();
 				return "SUCCESS";
 			}
-			return "FULL";
+			return "team is full";
 		}
 		public function getTeam(){
 			return $this->team;
 		}
+		/**
+		 * IDK why I must document this to suppress PHPStorm's warning
+		 * @return string
+		 */
 		public function __toString(){
 			return $this->config["name"];
 		}
@@ -130,7 +147,9 @@ namespace pemapmodder\legionpe\hub {
 	}
 }
 namespace{
-	function console($msg){
-		\pemapmodder\legionpe\hub\HubPlugin::get()->getLogger()->info($msg);
+	if(!function_exists("console")){
+		function console($msg){
+			\pemapmodder\legionpe\hub\HubPlugin::get()->getLogger()->info($msg);
+		}
 	}
 }
