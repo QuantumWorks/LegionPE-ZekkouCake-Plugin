@@ -32,24 +32,24 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
  * /pvp
  * /class
 * Permissions
-
-## Tasks in progress
-* More core utils
- * What exactly are they? #_#
-* DIFF pocketmine entities?
 * Spleef
  * Commands to leave and join
  * Monitor player sessions using events
  * Getter functions
  * Signs
  * Start/stop loop initialized by Arena::activate(), looped by Arena::start() and Arena::stop(), finalized by unsetting object of Arena::deactivate()
-* CTF plugin
- * later... where is the world? Hello @SpyDuck?
-* Minigame inheritance
 * Chat channels
  * rewriting into read permissions and property-array-saved write channels
  * /chat, /mute and /unmute - chat channels
-* Coins!
+
+## Tasks in progress
+* More core utils
+ * What exactly are they? #_#
+* DIFF pocketmine entities?
+* CTF plugin
+ * later... where is the world? Hello @MadMckMax?
+* Minigame inheritance
+* Coins and shops!
 
 ## Tasks TODO
 * @_@ not debugging... but debugging of course...
@@ -57,8 +57,6 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 ## Tasks low-priority/optional TODO
 * Build and Guess (from Draw stuffs from MCPC)
  * Better name?
-* Turn chat channels into permissions in the format:
- * legionpe.chat.general.receive|send
 
 ===
 # Difficulties
@@ -67,7 +65,7 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
  * events for entities death and hurt
  * affect debugging
 * Raw locations
- * CTF. Hello where is @SpyDuck?
+ * CTF. Hello where is @MadMckMax?
 
 ===
 # Debugging
@@ -82,6 +80,7 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 
 ## Done
 * Fixed syntax errors :)
+* Thank you PHPStorm!
 
 # Permissions
 LegoinPE:
