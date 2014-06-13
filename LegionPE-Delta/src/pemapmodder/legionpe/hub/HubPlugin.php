@@ -362,7 +362,7 @@ class HubPlugin extends PluginBase implements Listener{
 							}
 						}
 						$issuer->sendMessage("Your IP-auth is ".(($s = $this->getDb($issuer)->get("ip-auth")) === false ? "off.":
-								"on with value \"$s\"."));
+								"on with value \"".$s."\"."));
 						break;
 					case "help":
 					case false:
