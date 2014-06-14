@@ -3,7 +3,7 @@ version: beta 0
 api: [1.0.0]
 author: PEMapModder
 load: POSTWORLD
-main: pemapmodder\smg\Main
+main: pemapmodder_dep\smg\Main
 prefix: SMG
 permissions:
  smg:

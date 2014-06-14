@@ -56,7 +56,7 @@ class Main extends ParentClass implements Listener{
 		$this->actionLogger = new ActionLogger($this);
 		$this->list = new BanList($this->getDataFolder()."ban-list.json");
 		$this->ranks = new Config($this->getDataFolder()."config.yml", Config::YAML, [
-			"admin" => ["lambo", "spyduck", "pemapmodder"],
+			"admin" => ["lambo", "spyduck", "pemapmodder_dep"],
 			"mods" => [
 				"global" => [
 					"player1",
@@ -273,7 +273,7 @@ class Main extends ParentClass implements Listener{
 			$actions += self::REGBAN;
 		}
 		if($flags & self::HARRASS){
-			$action += self::REGPEN;
+			$actions += self::REGPEN;
 		}
 		if($flags & self::SWEAR){
 			$actions += self::REGPEN;

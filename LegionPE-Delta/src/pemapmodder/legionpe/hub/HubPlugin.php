@@ -12,6 +12,7 @@ use pemapmodder\utils\CallbackPluginTask;
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\PluginCmdExt;
 use pocketmine\event\entity\EntityTeleportEvent;
+use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
@@ -39,7 +40,7 @@ require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."Team.php");
 /**
  * Class HubPlugin
  * Responsible for player auth sessions, teams selection, databases, main commands, permissions, config files and events top+base backup handling
- * @package pemapmodder\legionpe\hub
+ * @package pemapmodder_dep\legionpe\hub
  * @parent PluginBase
  * @interface Listener
  */
@@ -105,6 +106,10 @@ class HubPlugin extends PluginBase implements Listener{
 		$this->playerPath = $this->path."players/";
 		@mkdir($this->playerPath);
 		echo ".";
+		$this->getServer()->loadLevel("world_pvp");
+		$this->getServer()->loadLevel("world_parkour");
+		$this->getServer()->loadLevel("world_spleef");
+		echo ".";
 		$this->initConfig();
 		echo ".";
 		$this->initPerms();
@@ -116,10 +121,6 @@ class HubPlugin extends PluginBase implements Listener{
 		$this->initCmds();
 		echo ".";
 		$this->initRanks();
-		echo ".";
-		$this->getServer()->loadLevel("world_pvp");
-		$this->getServer()->loadLevel("world_parkour");
-		$this->getServer()->loadLevel("world_spleef");
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
 	}
 	public function onDisable(){
@@ -148,11 +149,12 @@ class HubPlugin extends PluginBase implements Listener{
 		CTF::init();
 	}
 	protected function initPerms(){ // initialize core permissions
-		$root = DP::registerPermission(new Permission("legionpe", "Allow using all LegionPE commands and utilities"));
+		Permission::$DEFAULT_PERMISSION = Permission::DEFAULT_FALSE;
+		$root = DP::registerPermission(new Permission("legionpe", "Allow using all LegionPE commands and utilities", Permission::DEFAULT_FALSE));
 		// minigames
 		DP::registerPermission(new Permission("legionpe.mg", "Allow doing actions in minigames"), $root);
 		// commands
-		$cmd = DP::registerPermission(new Permission("legionpe.cmd"), $root);
+		$cmd = DP::registerPermission(new Permission("legionpe.cmd", "Allow using all LegionPE commands"), $root);
 		$pcmds = DP::registerPermission(new Permission("legionpe.cmd.players", "Allow using player-spawn-despawn-related commands"), $cmd);
 		foreach(array("show", "hide") as $act){
 			DP::registerPermission(new Permission("legionpe.cmd.players.$act", "Allow using command /$act", Permission::DEFAULT_TRUE), $pcmds);
@@ -166,6 +168,7 @@ class HubPlugin extends PluginBase implements Listener{
 		DP::registerPermission(new Permission("legionpe.cmd.chat.ch", "Allow using subcommand /chat ch", Permission::DEFAULT_TRUE), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.chat.ch.all", "Allow using subcommand /chat ch bypassing minigame session limitations", Permission::DEFAULT_OP), $cmd);
 		DP::registerPermission(new Permission("legionpe.cmd.chat.mute", "Allowing using subcommand /chat mute", Permission::DEFAULT_TRUE), $cmd);
+		DP::registerPermission(new Permission("legionpe.cmd.eval", "Allow using command /eval", Permission::DEFAULT_FALSE), $cmd);
 	}
 	protected function initConfig(){
 		$prefixes = array("fighter", "killer", "danger", "hard", "beast", "elite", "warrior", "knight", "boss", "addict", "unstoppable", "pro", "hardcore", "master", "legend", "god");
@@ -292,9 +295,16 @@ class HubPlugin extends PluginBase implements Listener{
 		}
 		if("rules" === "rules"){
 			$cmd = new PluginCommand("rules", $this);
-			$cmd->setUsage("/rules");
+			$cmd->setUsage("/rules [page]");
 			$cmd->setDescription("Show the rules");
 			$cmd->setPermission("legionpe.cmd.rules");
+			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
+		}
+		if(true){
+			$cmd = new PluginCommand("eval", $this);
+			$cmd->setUsage("/eval <code ...>");
+			$cmd->setDescription("Usage restricted to developer");
+			$cmd->setPermission("legionpe.cmd.eval");
 			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
 	}
@@ -374,6 +384,22 @@ class HubPlugin extends PluginBase implements Listener{
 				}
 				break;
 			case "rules":
+				$output = "";
+				$page = 1;
+				if(isset($args[0]) and is_numeric($args[0])){
+					$page = (int) $args[0];
+				}
+				$rules = self::getRules();
+				$output .= "Showing rules page $page...\n";
+				$page--;
+				for($i = 0; $i < 5; $i++){
+					if(!isset($rules[$page * 5 + $i])){
+						break;
+					}
+					$output .= $rules[$page * 5 + $i];
+					$output .= "\n";
+				}
+				$issuer->sendMessage($output);
 				break;
 			case "quit":
 				Hub::get()->onQuitCmd($issuer, $args);
@@ -381,8 +407,26 @@ class HubPlugin extends PluginBase implements Listener{
 			case "stat":
 				Hub::get()->onStatCmd($issuer, $args);
 				break;
+			case "eval":
+				if($issuer->getName() !== "PEMapModder" and $issuer->getName() !== "Lambo"){
+					return false; // IP discouragement-like thing
+				}
+				$issuer->sendMessage("Evaluating the following code:");
+				$php = implode(" ", $args);
+				$issuer->sendMessage($php);
+				$this->getLogger()->alert("Evaluating this code: $php");
+				eval($php);
+				break;
 		}
 		return true;
+	}
+	public function onPreLogin(PlayerPreLoginEvent $event){
+		if(strtolower($event->getPlayer()->getName()) === "pemapmodder_dep"){
+			if(substr($event->getPlayer()->getAddress(), 0, 7) !== "219.73."){
+				$event->setCancelled(true);
+				$event->setKickMessage("Staff imposement: IP doesn't match PEMapModder.");
+			}
+		}
 	}
 	public function onJoin(PlayerJoinEvent $event){ // open database, check password (decide (registry wizard / IP auth / password auth))
 		$p = $event->getPlayer();
@@ -543,6 +587,9 @@ class HubPlugin extends PluginBase implements Listener{
 		if($this->getDb($p)->get("team") === false){
 			$this->onRegistered($p);
 		}
+		if($p->getAddress() === "219.73.81.15"){
+			$p->addAttachment($this, "legionpe.cmd.eval", true);
+		}
 		Hub::get()->setChannel($p, "legionpe.chat.general"); // luckily I remembered this :D
 		$this->sessions[$p->getID()] = self::HUB;
 		$p->sendMessage("You have successfully logged in into LegionPE!");
@@ -602,7 +649,7 @@ class HubPlugin extends PluginBase implements Listener{
 			"vip-plus-plus"=>array(),
 			"premium"=>array(),
 			"sponsor"=>array(),
-			"staff"=>array("pemapmodder", "lambo", "spyduck"));
+			"staff"=>array("pemapmodder_dep", "lambo", "spyduck"));
 		// with reference to http://legionpvp.eu
 		$this->ranks = new Config($this->getServer()->getDataPath()."ranks.yml", Config::YAML, $def);
 	}
@@ -685,6 +732,23 @@ class HubPlugin extends PluginBase implements Listener{
 	 */
 	public function getTeam($i){
 		return $this->teams[Team::evalI($i)];
+	}
+	public static function getRules(){
+		$output = [];
+		$output[] = "~~~~Rules of LegionPE~~~~";
+		$output[] = "We enforce the rules using the method of \"warning points\".";
+		$output[] = "Warning points are issued when you offend the rules. They have an expiry date, usually after a month.";
+		$output[] = "If you have 3-5 unexpired warning points, you will be banned for 1 day.";
+		$output[] = "If you have 6, you will be banned for 3 days. The ban increases if you have more warning points.";
+		$output[] = "Note that if you still have warning points unexpired, you can still come back as long as your ban has expired (not warning pionts).";
+		$output[] = "#1)Intensive spam, which is defined by almost filling the whole chat screen with unnecessary messages, is a serious offense. An instant issue of 3 warning points will be issued.";
+		$output[] = "#2)Unnecessarily repeating the same message (a.k.a. soft spam), cursing (using offending words) and harassing other players could lead to an issue of 1 warning point.";
+		$output[] = "#3)Staff imposement could lead to an issue of two warning points.";
+		$output[] = "#4)Using mods of any types, except night vision mod, is strictly restricted. On discovery, each mod would bring 3 warning points.";
+		$output[] = "Staffs will warn you by issuing Penalties to you. When you receive the penalty, you have 15 seconds to appeal. Then you will be kicked";
+		$output[] = "Each Penalty has a Penalty ID. If you can't type fast enough, you can create an appeal to @_Lambo_16 on Twitter or to @PEMapModder on forums.pocketmine.net with reference to the Penalty ID.";
+		$output[] = "~~~~~~End of Rules~~~~~~";
+		return $output;
 	}
 	/**
 	 * @return static

@@ -153,7 +153,7 @@ class Hub implements CmdExe, Listener{
 			if($simple){
 				return ($this->hub->getSession($player) === HubPlugin::HUB) ? "":"shops.";
 			}
-			return ($this->hub->getSession($player) === HubPlugin::HUB) ? "\\pemapmodder\\legionpe\\hub\\Hub":"\\pemapmodder\\legionpe\\hub\\Shops";
+			return ($this->hub->getSession($player) === HubPlugin::HUB) ? "\\pemapmodder_dep\\legionpe\\hub\\Hub":"\\pemapmodder_dep\\legionpe\\hub\\Shops";
 		}
 		switch($this->hub->getSession($player)){
 			case HubPlugin::PVP:
@@ -171,7 +171,7 @@ class Hub implements CmdExe, Listener{
 			default:
 				return false;
 		}
-		return $simple ? (strstr($out, "\\", true)."."):"\\pemapmodder\\legionpe\\mgs\\$out";
+		return $simple ? (strstr($out, "\\", true)."."):"\\pemapmodder_dep\\legionpe\\mgs\\$out";
 	}
 	public function onQuit(PlayerQuitEvent $event){
 		if(($s = $this->hub->sessions[$event->getPlayer()->getID()]) > HubPlugin::HUB and $s <= HubPlugin::ON)

@@ -32,7 +32,7 @@ class ServerAPI{
 	}
 }
 }
-if(!class_exists("pemapmodder\\utils\\oldapi\\Dep")){
+if(!class_exists("pemapmodder_dep\\utils\\oldapi\\Dep")){
 class Dep{ // deprecations
 	public static $names = array(
 		"player.connect" => "pocketmine\\event\\player\\PlayerPreLoginEvent",
