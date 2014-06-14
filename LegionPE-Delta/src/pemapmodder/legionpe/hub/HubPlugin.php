@@ -8,6 +8,7 @@ use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Pk;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
 use pemapmodder\legionpe\mgs\ctf\Main as CTF;
+use pemapmodder\smg\SMG;
 use pemapmodder\utils\CallbackPluginTask;
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\PluginCmdExt;
@@ -98,6 +99,10 @@ class HubPlugin extends PluginBase implements Listener{
 	 * @var string
 	 */
 	public $playerPath;
+	/**
+	 * @var SMG
+	 */
+	private $SMG;
 	public function onEnable(){
 		console(TextFormat::AQUA."Initializing Hub", false);
 		$time = microtime(true);
@@ -131,6 +136,9 @@ class HubPlugin extends PluginBase implements Listener{
 			echo ".";
 			call_user_func($l);
 		}
+		echo ".";
+		$this->SMG->finalize();
+		unset($this->SMG);
 		$time = microtime(true) - $time;
 		$time *= 1000;
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! ($time ms)".TextFormat::RESET);
@@ -147,6 +155,7 @@ class HubPlugin extends PluginBase implements Listener{
 		Pk::init();
 		Spleef::init();
 		CTF::init();
+		$this->SMG = new SMG($this);
 	}
 	protected function initPerms(){ // initialize core permissions
 		Permission::$DEFAULT_PERMISSION = Permission::DEFAULT_FALSE;
@@ -725,6 +734,9 @@ class HubPlugin extends PluginBase implements Listener{
 	}
 	public function isLoggedIn(Player $player){
 		return isset($this->sessions[$player->getID()]) and $this->sessions[$player->getID()] <= self::ON and $this->sessions[$player->getID()] >= self::HUB;
+	}
+	public function getSMG(){
+		return $this->SMG;
 	}
 	/**
 	 * @param int|Player $i
