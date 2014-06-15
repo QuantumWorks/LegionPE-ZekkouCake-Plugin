@@ -242,6 +242,9 @@ class HubPlugin extends PluginBase implements Listener{
 			),
 		));
 	}
+	public function getConfig(){
+		return $this->config;
+	}
 	protected function registerHandles(){ // register events
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
@@ -657,11 +660,19 @@ class HubPlugin extends PluginBase implements Listener{
 			"vip-plus-plus"=>array(),
 			"premium"=>array(),
 			"sponsor"=>array(),
-			"staff"=>array("pemapmodder_dep", "lambo", "spyduck"));
+			"staff"=>array("pemapmodder", "lambo", "spyduck"));
 		// with reference to http://legionpvp.eu
 		$this->ranks = new Config($this->getServer()->getDataPath()."ranks.yml", Config::YAML, $def);
 	}
+	///////////
 	// utils //
+	///////////
+	/**
+	 * @return Config
+	 */
+	public function getRanks(){
+		return $this->ranks;
+	}
 	public function getRank(Player $p){ // get the lowercase rank of a player
 		foreach($this->ranks->getAll() as $rank=>$names){
 			if(in_array(strtolower($p->getName()), $names))
@@ -678,9 +689,16 @@ class HubPlugin extends PluginBase implements Listener{
 	protected function openDb(Player $p){ // open and initialize the database of a player
 		@touch($this->playerPath.$p->getAddress().".log");
 		$this->logp($p, "#Log file of player ".$p->getDisplayName()." and possibly other names with the same IP address: ".$p->getAddress());
+		$pw = false;
+		if(is_file($path = $this->getServer()->getDataPath()."plugins/SimpleAuth/players/".strtolower($p->getName()){0}."/".strtolower($p->getName()).".yml")){
+			$data = yaml_parse_file($path);
+			if(is_array($data) and isset($data["hash"])){
+				$pw = $data["hash"];
+			}
+		}
 		$config = new Config($this->playerPath.strtolower($p->getName().".yml"), Config::YAML, array(
 	 	 	"config-version-never-edit-this" => self:: CURRENT_VERSION,
-			"pw-hash" => false, // I don't care whether they are first time or not, just care they registered or not
+			"pw-hash" => $pw, // I don't care whether they are first time or not, just care they registered or not
 			"ip-auth" => false,
 			"coins"=>200,
 			"prefixes" => array(

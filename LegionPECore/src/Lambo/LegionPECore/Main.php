@@ -2,10 +2,9 @@
 
 namespace Lambo\LegionPECore;
 
+use pemapmodder\legionpe\hub\HubPlugin;
 use pocketmine\event\Listener;
 use pocketmine\plugin\PluginBase;
-use pocketmine\event\player\PlayerLoginEvent;
-use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -15,26 +14,17 @@ use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\Player;
 use pocketmine\item\Item;
-use pocketmine\inventory\PlayerInventory;
-use pocketmine\inventory\BaseInventory;
-use pocketmine\level\Level;
 use pocketmine\level\Position;
-use pocketmine\math\Vector3;
-use pocketmine\Server;
 use pocketmine\utils\Config;
 use pocketmine\command\CommandExecutor;
 use pocketmine\command\CommandSender;
 use pocketmine\command\Command;
-use pocketmine\utils\MainLogger;
 use pocketmine\utils\TextFormat;
-use pocketmine\block\Block;
 use pocketmine\tile\Tile;
-use pocketmine\tile\Sign;
-use pocketmine\event\Event;
-use pocketmine\event\EventPriority;
 
 class Main extends PluginBase implements CommandExecutor,Listener{
-
+	/** @var Config */
+	public $ranks;
     private $players=array();
     private $mutedPlayers=array();
     private $noMsgPlayers=array();
@@ -42,19 +32,18 @@ class Main extends PluginBase implements CommandExecutor,Listener{
     private $respawnPos=array();
 
 	public function onEnable(){
-        MainLogger::getLogger()->info(TextFormat::LIGHT_PURPLE."LegionPECore loaded.");
+        $this->getLogger()->info(TextFormat::LIGHT_PURPLE."LegionPECore loaded.");
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
-        $this->server=Server::getInstance();
-        if(file_exists("worlds/world_pvp")) $this->server->loadLevel("world_pvp");
-        if(file_exists("worlds/world_spleef")) $this->server->loadLevel("world_spleef");
-        if(file_exists("worlds/world_parkour")) $this->server->loadLevel("world_parkour");
+        if(file_exists("worlds/world_pvp")) $this->getServer()->loadLevel("world_pvp");
+        if(file_exists("worlds/world_spleef")) $this->getServer()->loadLevel("world_spleef");
+        if(file_exists("worlds/world_parkour")) $this->getServer()->loadLevel("world_parkour");
         @mkdir("player-databases/");
         @mkdir("player-databases/players/");
-        $this->ranks = new Config("ranks.yml",Config::YAML,array("donater"=>array(),"donater+"=>array(),"vip"=>array(),"vip+"=>array(),"trial-moderator"=>array(),"moderator"=>array(),"developer"=>array(),"admin"=>array(),"owner"=>array()));
+        $this->ranks = HubPlugin::get()->getConfig();#new Config("ranks.yml",Config::YAML,array("donater"=>array(),"donater+"=>array(),"vip"=>array(),"vip+"=>array(),"trial-moderator"=>array(),"moderator"=>array(),"developer"=>array(),"admin"=>array(),"owner"=>array()));
 	}
 
 	public function onDisable(){
-        MainLogger::getLogger()->info(TextFormat::LIGHT_PURPLE."LegionPECore disabled.");
+        $this->getLogger()->info(TextFormat::LIGHT_PURPLE."LegionPECore disabled.");
 	}
 
     /*public function onDeath(PlayerDeathEvent $event){
@@ -97,7 +86,7 @@ class Main extends PluginBase implements CommandExecutor,Listener{
     }
 
     /**
-     * @param BlockBreakEvent $event
+     * @param PlayerRespawnEvent $event
      *
      * @priority HIGHEST
      * @ignoreCancelled false
@@ -127,17 +116,15 @@ class Main extends PluginBase implements CommandExecutor,Listener{
     public function onChat(PlayerChatEvent $event){
         $msg = $event->getMessage();
         $player = $event->getPlayer();
-        $username = $player->getName();
-        $message = $this->getMsg($player,$msg);
-        foreach($this->server->getOnlinePlayers() as $players){
+//        $message = $this->getMsg($player,$msg); // note: Prefix API?
+        foreach($this->getServer()->getOnlinePlayers() as $players){
             if($players->getLevel() == $player->getLevel()){
                 if(!in_array($players->getName(),$this->noMsgPlayers)){
-                    $players->sendMessage($message);
+//                    $players->sendMessage($message);
                 }
             }
         }
         $event->setCancelled(true);
-        return true;
     }
 
     /**
@@ -147,7 +134,7 @@ class Main extends PluginBase implements CommandExecutor,Listener{
      * @ignoreCancelled false
      */
     public function onQuit(PlayerQuitEvent $event){
-        if($event->getPlayer()->getLevel()->getName()=="world") $event->getPlayer()->teleport($this->server->getLevel("world")->getSafeSpawn());
+        if($event->getPlayer()->getLevel()->getName()=="world") $event->getPlayer()->teleport($this->getServer()->getLevel("world")->getSafeSpawn());
         $event->setQuitMessage("");
     }
     
@@ -157,38 +144,39 @@ class Main extends PluginBase implements CommandExecutor,Listener{
      * @priority HIGHEST
      * @ignoreCancelled false
      */
-    public function onJoin(PlayerJoinEvent $event){
-        $event->setJoinMessage("");
-        $player = $event->getPlayer();
-        $username = $player->getName();
-        if(file_exists("player-databases/players/".$username.".txt")){
-            $player->sendMessage("===============================\nWelcome back to Legion PE, ".$username."!\nYou are in the level ".$player->getLevel()->getName()."\nYour coins: ".$this->get($player,"coins")."\n===============================");
-        }else{
-            $this->createConfig($player);
-            MainLogger::getLogger()->info(TextFormat::LIGHT_PURPLE."Creating config of ".$username.".");
-            $player->sendMessage("\n===============================\nWelcome to Legion PE, ".$username."!\nYou can start playing straight away, or look at\nthe tutorial by typing /tutorial\n===============================");
-        }
-
-        if(file_exists("player-databases/spleef-database/".$username.".txt")){
-            $c = $this->get($player,null);
-            $d = new Config("player-databases/spleef-database/".$username.".txt", Config::YAML, array());
-            $player->sendMessage("Converting old spleef config...");
-            $c->set("spleef-wins",$d->get("wins"));
-            $c->set("spleef-loses",$d->get("loses"));
-            $c->set("spleef-WLR",($d->get("wins") / $d->get("loses")));
-            $player->sendMessage("Your spleef config has been converted!");
-            unlink("player-databases/spleef-database/".$username.".txt");
-        }
-        if(file_exists("SKC-Rewrite/player-databases/".strtolower($username[0])."/".strtolower($username).".txt")){
-            $c = $this->get($player,null);
-            $d = new Config("SKC-Rewrite/player-databases/".strtolower($username[0]).".txt", Config::YAML, array());
-            $player->sendMessage("Converting old PVP config...");
-            $c->set("pvp-kills",$d->get("kills"));
-            $c->set("pvp-deaths",$d->get("deaths"));
-            $c->set("pvp-KDR",($d->get("kills") / $d->get("deaths")));
-            $player->sendMessage("Your PVP config has been converted!");
-            unlink("SKC-Rewrite/player-databases/".strtolower($username[0])."/".strtolower($username).".txt");
-        }
+    public function onJoin(PlayerJoinEvent $event){// I had already done this
+//        $event->setJoinMessage("");
+//        $player = $event->getPlayer();
+//        $username = $player->getName();
+//        if(file_exists("player-databases/players/".$username.".txt")){
+//            $player->sendMessage("===============================\nWelcome back to Legion PE, ".$username."!\nYou are in the level ".$player->getLevel()->getName()."\nYour coins: ".$this->get($player,"coins")."\n===============================");
+//        }
+//        else{
+//            $this->createConfig($player);
+//            $this->getLogger()->info(TextFormat::LIGHT_PURPLE."Creating config of ".$username.".");
+//            $player->sendMessage("\n===============================\nWelcome to Legion PE, ".$username."!\nYou can start playing straight away, or look at\nthe tutorial by typing /tutorial\n===============================");
+//        }
+//
+//        if(file_exists("player-databases/spleef-database/".$username.".txt")){
+//            $c = $this->get($player,null);
+//            $d = new Config("player-databases/spleef-database/".$username.".txt", Config::YAML, array());
+//            $player->sendMessage("Converting old spleef config...");
+//            $c->set("spleef-wins",$d->get("wins"));
+//            $c->set("spleef-loses",$d->get("loses"));
+//            $c->set("spleef-WLR",($d->get("wins") / $d->get("loses")));
+//            $player->sendMessage("Your spleef config has been converted!");
+//            unlink("player-databases/spleef-database/".$username.".txt");
+//        }
+//        if(file_exists("SKC-Rewrite/player-databases/".strtolower($username[0])."/".strtolower($username).".txt")){
+//            $c = $this->get($player,null);
+//            $d = new Config("SKC-Rewrite/player-databases/".strtolower($username[0]).".txt", Config::YAML, array());
+//            $player->sendMessage("Converting old PVP config...");
+//            $c->set("pvp-kills",$d->get("kills"));
+//            $c->set("pvp-deaths",$d->get("deaths"));
+//            $c->set("pvp-KDR",($d->get("kills") / $d->get("deaths")));
+//            $player->sendMessage("Your PVP config has been converted!");
+//            unlink("SKC-Rewrite/player-databases/".strtolower($username[0])."/".strtolower($username).".txt");
+//        }
     }
 
     /**
@@ -200,18 +188,17 @@ class Main extends PluginBase implements CommandExecutor,Listener{
     public function onInteract(PlayerInteractEvent $event){
         $blockID = $event->getBlock()->getID();
         $player = $event->getPlayer();
-        $username = $player->getName();
         if($blockID==63 or $blockID==68 or $blockID==323){
             $tile = $this->getTile(new Position($event->getBlock()->getX(),$event->getBlock()->getY(),$event->getBlock()->getZ(),$player->getLevel()));
             if($tile->getText(0)=="[Teleport]" and $tile->getText(1)=="to the PVP world!"){
                 for($i=0;$i<36;$i++) $player->getInventory()->clear($i);
                 $player->getInventory()->sendContents($player);
-                for($i=0;$i<4;$i++) $player->getInventory()->setArmor($i,Item::get(0));
+                for($i=0;$i<4;$i++) $player->getInventory()->setArmorItem($i,Item::get(0));
                 $player->getInventory()->sendArmorContents($player);
-                $player->teleport($this->server->getLevel("world_pvp")->getSafeSpawn());
+                $player->teleport($this->getServer()->getLevel("world_pvp")->getSafeSpawn());
                 $conf = $this->get($player,null)->getAll();
                 for($a=0;$a<count($conf["pvp-kit"]["armor"]);$a++){
-                    $player->getInventory()->setArmor($a,Item::get($conf["pvp-kit"]["armor"][$a]));
+                    $player->getInventory()->setArmorItem($a,Item::get($conf["pvp-kit"]["armor"][$a]));
                 }
                 $player->getInventory()->sendArmorContents($player);
                 for($i=0;$i<count($conf["pvp-kit"]["items"]);$i++){
@@ -221,8 +208,8 @@ class Main extends PluginBase implements CommandExecutor,Listener{
             }
             if($tile->getText(0)=="[Teleport]" and $tile->getText(1)=="to the Spleef world!"){
                 for($i=0;$i<36;$i++) $player->getInventory()->clear($i);
-                for($i=0;$i<4;$i++) $player->getInventory()->setArmor($i,Item::get(0));
-                $player->teleport($this->server->getLevel("world_spleef")->getSafeSpawn());
+                for($i=0;$i<4;$i++) $player->getInventory()->setArmorItem($i,Item::get(0));
+                $player->teleport($this->getServer()->getLevel("world_spleef")->getSafeSpawn());
             }
             if($tile->getText(0)=="[Teleport]" and $tile->getText(1)=="to the Infected world!"){
                 //$player->teleport($this->server->getLevel("world_pvp")->getSafeSpawn());
@@ -230,8 +217,8 @@ class Main extends PluginBase implements CommandExecutor,Listener{
             }
             if($tile->getText(0)=="[Teleport]" and $tile->getText(1)=="to the Parkour world!"){
                 for($i=0;$i<36;$i++) $player->getInventory()->clear($i);
-                for($i=0;$i<4;$i++) $player->getInventory()->setArmor($i,Item::get(0));
-                $player->teleport($this->server->getLevel("world_parkour")->getSafeSpawn());
+                for($i=0;$i<4;$i++) $player->getInventory()->setArmorItem($i,Item::get(0));
+                $player->teleport($this->getServer()->getLevel("world_parkour")->getSafeSpawn());
             }
 
 
@@ -360,18 +347,18 @@ class Main extends PluginBase implements CommandExecutor,Listener{
                 }
     		}else
     		if($cmd=="hub"){
-    			$sender->teleport($this->server->getLevel("world")->getSafeSpawn());
+    			$sender->teleport($this->getServer()->getLevel("world")->getSafeSpawn());
     			$sender->sendMessage("You have been teleported to hub.");
     		}else
             if($cmd=="pvp"){
-                for($i=0;$i<36;$i++) $issuer->getInventory()->clear($i);
+                for($i=0;$i<36;$i++) $sender->getInventory()->clear($i);
                 $sender->getInventory()->sendContents($sender);
-                for($i=0;$i<4;$i++) $sender->getInventory()->setArmor($i,Item::get(0));
+                for($i=0;$i<4;$i++) $sender->getInventory()->setArmorItem($i,Item::get(0));
                 $sender->getInventory()->sendArmorContents($sender);
-                $sender->teleport($this->server->getLevel("world_pvp")->getSafeSpawn());
+                $sender->teleport($this->getServer()->getLevel("world_pvp")->getSafeSpawn());
                 $conf = $this->get($sender,null)->getAll();
                 for($a=0;$a<count($conf["pvp-kit"]["armor"]);$a++){
-                    $sender->getInventory()->setArmor($a,Item::get($conf["pvp-kit"]["armor"][$a]));
+                    $sender->getInventory()->setArmorItem($a,Item::get($conf["pvp-kit"]["armor"][$a]));
                 }
                 $sender->getInventory()->sendArmorContents($sender);
                 for($i=0;$i<count($conf["pvp-kit"]["items"]);$i++){
@@ -383,99 +370,99 @@ class Main extends PluginBase implements CommandExecutor,Listener{
         return true;
     }
 
-    public function getMsg(Player $player, $message){
-        $msg=null;
-        if($player->getLevel()->getName()=="world"){
-            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
-                $msg = "[".$this->getPrefix($player)."]".$player->getName().": ".$message;
-            }else
-            if(strlen($message) > 1){
-                if(strlen($message) < 50){
-                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
-                        if($message != $this->players[$player->getName]["msg"]){
-                            if((time() - $this->players[$player->getName()]["time"]) > 7){
-                                $msg = $player->getName().": ".$message;
-                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
-                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
-                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
-                }else $player->sendMessage("Your message is too long!");$msg=false;
-            }else $player->sendMessage("Your message is too short!");$msg=false;
-        }else
-        if($player->getLevel()->getName()=="world_parkour"){
-            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
-                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"parkour-prefix")."]".$player->getName().": ".$message;
-            }else
-            if(strlen($message) > 1){
-                if(strlen($message) < 50){
-                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
-                        if($message != $this->players[$player->getName]["msg"]){
-                            if((time() - $this->players[$player->getName()]["time"]) > 7){
-                                $msg = "[".$this->get($player,"parkour-prefix")."]".$player->getName().": ".$message;
-                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
-                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
-                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
-                }else $player->sendMessage("Your message is too long!");$msg=false;
-            }else $player->sendMessage("Your message is too short!");$msg=false;
-        }else
-        if($player->getLevel()->getName()=="world_pvp"){
-            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
-                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"pvp-kills")."]".$player->getName().": ".$message;
-            }else
-            if(strlen($message) > 1){
-                if(strlen($message) < 50){
-                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
-                        if($message != $this->players[$player->getName]["msg"]){
-                            if((time() - $this->players[$player->getName()]["time"]) > 7){
-                                $kills = $this->get($player,"pvp-kills");
-                                $tag=null;
-                                if($kills == 0 or $kills == null) $kills = 0;$tag="";
-                                if($kills >=25) $tag="[Fighter]";
-                                if($kills >=75) $tag="[Killer]";
-                                if($kills >=150) $tag="[Dangerous]";
-                                if($kills >=250) $tag="[Hard]";
-                                if($kills >=375) $tag="[Beast]";
-                                if($kills >=525) $tag="[Elite]";
-                                if($kills >=675) $tag="[Warrior]";
-                                if($kills >=870) $tag="[Knight]";
-                                if($kills >=1100) $tag="[Addict]";
-                                if($kills >=1350) $tag="[Unstoppable]";
-                                if($kills >=1625) $tag="[Pro]";
-                                if($kills >=1925) $tag="[Hardcore]";
-                                if($kills >=2250) $tag="[Master]";
-                                if($kills >=2600) $tag="[Legend]";
-                                if($kills >=2975) $tag="[God]";
-                                if($kills == 0) $kills="";
-                                else $kills="[".$kills."]";
-                                $msg = $tag.$kills.$player->getName().": ".$message;
-                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
-                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
-                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
-                }else $player->sendMessage("Your message is too long!");$msg=false;
-            }else $player->sendMessage("Your message is too short!");$msg=false;
-        }else
-        if($player->getLevel()->getName()=="world_spleef"){
-            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
-                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"spleef-kills")."]".$player->getName().": ".$message;
-            }else
-            if(strlen($message) > 1){
-                if(strlen($message) < 50){
-                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
-                        if($message != $this->players[$player->getName]["msg"]){
-                            if((time() - $this->players[$player->getName()]["time"]) > 7){
-                                $msg = "[".$this->get($player,"spleef-wins")."]".$player->getName().": ".$message;
-                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
-                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
-                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
-                }else $player->sendMessage("Your message is too long!");$msg=false;
-            }else $player->sendMessage("Your message is too short!");$msg=false;
-        }else{
-            $msg = $player->getName.": ".$message;
-        }
-
-        if($msg !== false) $this->players[$player->getName()]=array("time"=>time(),"msg"=>$message);
-
-        return $msg;
-    }
+//    public function getMsg(Player $player, $message){
+//        $msg=null;
+//        if($player->getLevel()->getName()=="world"){
+//            if(in_array($player->getName(),$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
+//                $msg = "[".$this->getPrefix($player)."]".$player->getName().": ".$message;
+//            }else
+//            if(strlen($message) > 1){
+//                if(strlen($message) < 50){
+//                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
+//                        if($message != $this->players[$player->getName]["msg"]){
+//                            if((time() - $this->players[$player->getName()]["time"]) > 7){
+//                                $msg = $player->getName().": ".$message;
+//                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
+//                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
+//                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
+//                }else $player->sendMessage("Your message is too long!");$msg=false;
+//            }else $player->sendMessage("Your message is too short!");$msg=false;
+//        }else
+//        if($player->getLevel()->getName()=="world_parkour"){
+//            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
+//                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"parkour-prefix")."]".$player->getName().": ".$message;
+//            }else
+//            if(strlen($message) > 1){
+//                if(strlen($message) < 50){
+//                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
+//                        if($message != $this->players[$player->getName]["msg"]){
+//                            if((time() - $this->players[$player->getName()]["time"]) > 7){
+//                                $msg = "[".$this->get($player,"parkour-prefix")."]".$player->getName().": ".$message;
+//                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
+//                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
+//                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
+//                }else $player->sendMessage("Your message is too long!");$msg=false;
+//            }else $player->sendMessage("Your message is too short!");$msg=false;
+//        }else
+//        if($player->getLevel()->getName()=="world_pvp"){
+//            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
+//                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"pvp-kills")."]".$player->getName().": ".$message;
+//            }else
+//            if(strlen($message) > 1){
+//                if(strlen($message) < 50){
+//                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
+//                        if($message != $this->players[$player->getName]["msg"]){
+//                            if((time() - $this->players[$player->getName()]["time"]) > 7){
+//                                $kills = $this->get($player,"pvp-kills");
+//                                $tag=null;
+//                                if($kills == 0 or $kills == null) $kills = 0;$tag="";
+//                                if($kills >=25) $tag="[Fighter]";
+//                                if($kills >=75) $tag="[Killer]";
+//                                if($kills >=150) $tag="[Dangerous]";
+//                                if($kills >=250) $tag="[Hard]";
+//                                if($kills >=375) $tag="[Beast]";
+//                                if($kills >=525) $tag="[Elite]";
+//                                if($kills >=675) $tag="[Warrior]";
+//                                if($kills >=870) $tag="[Knight]";
+//                                if($kills >=1100) $tag="[Addict]";
+//                                if($kills >=1350) $tag="[Unstoppable]";
+//                                if($kills >=1625) $tag="[Pro]";
+//                                if($kills >=1925) $tag="[Hardcore]";
+//                                if($kills >=2250) $tag="[Master]";
+//                                if($kills >=2600) $tag="[Legend]";
+//                                if($kills >=2975) $tag="[God]";
+//                                if($kills == 0) $kills="";
+//                                else $kills="[".$kills."]";
+//                                $msg = $tag.$kills.$player->getName().": ".$message;
+//                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
+//                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
+//                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
+//                }else $player->sendMessage("Your message is too long!");$msg=false;
+//            }else $player->sendMessage("Your message is too short!");$msg=false;
+//        }else
+//        if($player->getLevel()->getName()=="world_spleef"){
+//            if(in_array($player->getName,$this->ranks->get("moderator")) or in_array($player->getName,$this->ranks->get("admin")) or in_array($player->getName,$this->ranks->get("developer")) or in_array($player->getName,$this->ranks->get("owner"))){
+//                $msg = "[".$this->getPrefix($player)."][".$this->get($player,"spleef-kills")."]".$player->getName().": ".$message;
+//            }else
+//            if(strlen($message) > 1){
+//                if(strlen($message) < 50){
+//                    if((strpos($message,"fuck") !== false) and (strpos($message,"cunt") !== false) and (strpos($message,"penis") !== false) and (strpos($message,"vagina") !== false) and (strpos($message,"bitch") !== false) and (strpos($message,"dick") !== false) and (strpos($message,"asshole") !== false) and (strpos($message,"bastard") !== false) and (strpos($message,"bullshit") !== false)){
+//                        if($message != $this->players[$player->getName]["msg"]){
+//                            if((time() - $this->players[$player->getName()]["time"]) > 7){
+//                                $msg = "[".$this->get($player,"spleef-wins")."]".$player->getName().": ".$message;
+//                            }else $player->sendMessage("Please wait ".(7 - (time() - $this->players[$player->getName()]["time"]))." seconds.");
+//                        }else $player->sendMessage("You cannot send the same message!");$msg=false;
+//                    }else $player->sendMessage("Your message contains a blacklisted word!");$msg=false;
+//                }else $player->sendMessage("Your message is too long!");$msg=false;
+//            }else $player->sendMessage("Your message is too short!");$msg=false;
+//        }else{
+//            $msg = $player->getName.": ".$message;
+//        }
+//
+//        if($msg !== false) $this->players[$player->getName()]=array("time"=>time(),"msg"=>$message);
+//
+//        return $msg;
+//    }
     
     //how do I use these functions in other plugins?
 
@@ -544,10 +531,10 @@ class Main extends PluginBase implements CommandExecutor,Listener{
         $conf->save();
     }
 
-	public function createConfig(Player $player){
-		$conf = new Config("player-databases/players/".strtolower($player->getName()).".txt", Config::YAML, array("prefix"=>null,"rank"=>"default","spleef-wins"=>0,"spleef-loses"=>0,"spleef-WLR"=>0,"spleef-items-purchased"=>array(),"spleef-item"=>284,"spleef-prefix"=>null,"pvp-kills"=>0,"pvp-deaths"=>0,"pvp-KDR"=>0,"pvp-prefix"=>0,"pvp-kit"=>array("armor"=>array("0"=>298,"1"=>299,"2"=>300,"3"=>301),"items"=>array("0"=>array("id"=>272,"count"=>3),"1"=>array("id"=>360,"count"=>32))),"pvp-kills-total"=>0,"pvp-items-purchased"=>array(),"parkour-prefix"=>null,"parkour-maps-finished"=>array(),"parkour-maps-purchased"=>array(),"coins"=>100,"reports"=>0,"counter"=>0,"kicks"=>0,"group-in"=>null,"group-leader"=>false,"group"=>null,"friends"=>array(),"friend-requests"=>array(),"friend-pending"=>array(),"infected-wins"=>0,"infected-loses"=>0,"infected-WLR"=>0,"infected-kit"=>array("armor"=>array("0"=>298,"1"=>299,"2"=>300,"3"=>301),"items"=>array("0"=>array("id"=>272,"count"=>3),"1"=>array("id"=>360,"count"=>32))),"infected-items-purchased"=>array()));
-		return $conf;
-	}
+//	public function createConfig(Player $player){
+//		$conf = new Config("player-databases/players/".strtolower($player->getName()).".txt", Config::YAML, array("prefix"=>null,"rank"=>"default","spleef-wins"=>0,"spleef-loses"=>0,"spleef-WLR"=>0,"spleef-items-purchased"=>array(),"spleef-item"=>284,"spleef-prefix"=>null,"pvp-kills"=>0,"pvp-deaths"=>0,"pvp-KDR"=>0,"pvp-prefix"=>0,"pvp-kit"=>array("armor"=>array("0"=>298,"1"=>299,"2"=>300,"3"=>301),"items"=>array("0"=>array("id"=>272,"count"=>3),"1"=>array("id"=>360,"count"=>32))),"pvp-kills-total"=>0,"pvp-items-purchased"=>array(),"parkour-prefix"=>null,"parkour-maps-finished"=>array(),"parkour-maps-purchased"=>array(),"coins"=>100,"reports"=>0,"counter"=>0,"kicks"=>0,"group-in"=>null,"group-leader"=>false,"group"=>null,"friends"=>array(),"friend-requests"=>array(),"friend-pending"=>array(),"infected-wins"=>0,"infected-loses"=>0,"infected-WLR"=>0,"infected-kit"=>array("armor"=>array("0"=>298,"1"=>299,"2"=>300,"3"=>301),"items"=>array("0"=>array("id"=>272,"count"=>3),"1"=>array("id"=>360,"count"=>32))),"infected-items-purchased"=>array()));
+//		return $conf;
+//	}
 
     public function getTile($poss, $forceArray = false){
         if($poss instanceof Position)
