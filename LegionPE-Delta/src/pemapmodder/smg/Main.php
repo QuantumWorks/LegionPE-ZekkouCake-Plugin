@@ -9,6 +9,8 @@ use pocketmine\command\CommandSender;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerPreLoginEvent;
 
+echo "SMG is loaded".PHP_EOL;
+
 class SMG implements CommandExecutor, Listener{
 	private $main;
 	/** @var BanList */

@@ -8,6 +8,7 @@ use pemapmodder\utils\oldapi\Level as Lv;
 use pemapmodder\utils\spaces\CuboidSpace as MySpace;
 
 use pocketmine\math\Vector3;
+use pocketmine\Server;
 
 abstract class RawLocs{
 	public final static function chooseTeamStd(){
@@ -45,19 +46,19 @@ abstract class RawLocs{
 		return new MySpace(new Vector3(100, 31, 125), new Vector3(100, 32, 133), self::hub());
 	}
 	public final static function hub(){
-		return Lv::get("world");
+		return Server::getInstance()->getLevel("world");
 	}
 	public final static function spawn(){
 		return new Position(129, 33, 129, self::hub());
 	}
 	public final static function spleef(){
-		return Lv::get("world_spleef");
+		return Server::getInstance()->getLevel("world_spleef");
 	}
 	public final static function spleefSpawn(){
 		return new Position(128, 81, 123, self::spleef());
 	}
 	public final static function parkour(){
-		return Lv::get("world_parkour");
+		return Server::getInstance()->getLevel("world_parkour");
 	}
 	public final static function pk(){
 		return self::parkour();
@@ -66,7 +67,7 @@ abstract class RawLocs{
 		return self::pk()->getSafeSpawn();
 	}
 	public final static function pvp(){
-		return Lv::get("world_pvp");
+		return Server::getInstance()->getLevel("world_pvp");
 	}
 	public final static function pvpSpawn(){
 		return self::pvp()->getSafeSpawn();
@@ -75,7 +76,7 @@ abstract class RawLocs{
 		return new MySpace(new Vector3(134, 30, 101), new Vector3(124, 42, 99), self::hub());
 	}
 	public final static function shop(){
-		return Lv::get("world_shop");
+		return Server::getInstance()->getLevel("world_shop");
 	}
 	public final static function shopSpawn(){
 		return new Position(128, 128, 128, self::shop());

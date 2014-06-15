@@ -18,7 +18,7 @@ abstract class Rawlocs extends ParentClass{
 		return "world_base_ctf";
 	}
 	public final static function basePath(){
-		return Server::getInstance()->getDatapath()."worlds/".self::baseName();
+		return Server::getInstance()->getDataPath()."worlds/".self::baseName();
 	}
 	public final static function worldName(){
 		return "world_temp_ctf";

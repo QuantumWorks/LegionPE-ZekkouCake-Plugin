@@ -1,6 +1,6 @@
 name: LegionPE_Delta
 authors: [PEMapModder, Lambo]
-main: pemapmodder_dep\legionpe\hub\HubPlugin
+main: pemapmodder\legionpe\hub\HubPlugin # WHO CHANGED IT!!! (Of course me though)
 load: PostWorld
 website: https://github.com/mcpesrccode/LegionPE-ZekkouCake-Plugin
 api: [1.0.0]
