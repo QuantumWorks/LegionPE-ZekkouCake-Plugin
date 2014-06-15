@@ -38,9 +38,7 @@ class Hub implements CmdExe, Listener{
 	protected $mutePA = array();
 	protected $pchannels = array();
 	protected $channels = array();
-	/**
-	 * @var \pocketmine\permission\PermissionAttachment[][] $readPA access with $readPA[$CID][$channel] (no ".read" at the end of $channel)
-	 */
+	/** @var \pocketmine\permission\PermissionAttachment[][] $readPA access with $readPA[$CID][$channel] (no ".read" at the end of $channel) */
 	protected $readPA = array();
 	public static function defaultChannels(){
 		$r = array(
@@ -147,6 +145,7 @@ class Hub implements CmdExe, Listener{
 				$issuer->sendMessage($msg);
 			}
 		}
+		return true;
 	}
 	public function getMgClass(Player $player, $acceptNonMg = true, $simple = false){
 		if($acceptNonMg and $this->hub->getSession($player) === HubPlugin::HUB or $this->hub->getSession($player) === HubPlugin::SHOP){
@@ -384,7 +383,6 @@ class Hub implements CmdExe, Listener{
 			$player->sendMessage("You have received $coins for $reason.");
 		}
 	}
-	public static $inst = false;
 	public static function init(){
 		HubPlugin::get()->statics[get_class()] = new static();
 	}

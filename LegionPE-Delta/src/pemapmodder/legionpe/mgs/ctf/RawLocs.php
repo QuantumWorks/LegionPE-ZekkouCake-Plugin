@@ -24,7 +24,7 @@ abstract class Rawlocs extends ParentClass{
 		return "world_temp_ctf";
 	}
 	public final static function worldPath(){
-		return Server::getInstance()->getDatapath()."worlds/".self::worldName();
+		return Server::getInstance()->getDataPath()."worlds/".self::worldName();
 	}
 	public final static function world(){
 		return Server::getInstance()->getLevel(self::worldName());
@@ -40,6 +40,7 @@ abstract class Rawlocs extends ParentClass{
 			case 4 & 0b11:
 				return new Pos(self::world());
 		}
+		return 0; // just to silent PHPStorm
 	}
 	public final static function identifyBlock(Block $block){
 		$loc = $block->getFloorX().",".$block->getFloorY().",".$block->getFloorZ();

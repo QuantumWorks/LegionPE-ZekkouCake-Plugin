@@ -93,7 +93,7 @@ class Parkour extends MgMain implements Listener{
 	public function getSpawn(Player $player, $t){
 		return RawLocs::pkSpawn();
 	}
-	public function isJoinable(){
+	public function isJoinable(Player $player, $t){
 		return true;
 	}
 	public static $i = false;

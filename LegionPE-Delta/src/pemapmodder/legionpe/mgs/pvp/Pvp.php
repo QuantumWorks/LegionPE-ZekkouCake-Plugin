@@ -113,7 +113,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	public function getSpawn(Player $player, $TID){
 		return RawLocs::pvpSpawn();
 	}
-	public function isJoinable(){
+	public function isJoinable(Player $player, $t){
 		return true;
 	}
 	public function getStats(Player $player, array $args = []){

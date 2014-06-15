@@ -10,24 +10,32 @@ abstract class MgMain{
 	public abstract function getName();
 	public abstract function getSessionId();
 	/**
-	 * @return \pocketmine\level\Position
+	 * @param Player $player
+	 * @param $TID
+	 * @return mixed
 	 */
 	public abstract function getSpawn(Player $player, $TID);
 	/**
-	 * @return string
+	 * @param Player $player
+	 * @param $TID
+	 * @return mixed
 	 */
 	public abstract function getDefaultChatChannel(Player $player, $TID);
 	/**
-	 * @return bool
+	 * @param Player $player
+	 * @param $t
+	 * @return mixed
 	 */
-	public abstract function isJoinable();
+	public abstract function isJoinable(Player $player, $t);
 	/**
-	 * @return string|bool|null string stat message, boolean false or null
+	 * @param Player $player
+	 * @param array $args
+	 * @return mixed
 	 */
 	public abstract function getStats(Player $player, array $args = []);
 //	public abstract static function init();
-	/**
-	 * @return self
-	 */
+//	/**
+//	 * @return self
+//	 */
 //	public abstract static function get();
 }

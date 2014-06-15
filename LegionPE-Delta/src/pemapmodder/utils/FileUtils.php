@@ -18,11 +18,18 @@ class FileUtils{
 		}
 		return true;
 	}
-	public static function del($dir){
+	public static function del($dir, $force = false){
 		if(substr($dir, -1) !== "/") $dir .= "/";
+		if(is_file($dir)){
+			if($force){
+				unlink($dir);
+				return true;
+			}
+			return false;
+		}
 		if(!is_dir($dir)) return false;
 		$directory = dir($dir);
-		while(($fn = $dir->read()) !== false){
+		while(($fn = $directory->read()) !== false){
 			if(is_file($dir.$fn))
 				unlink($dir.$fn);
 			elseif(str_replace(array(".", "/"), array("", ""), $fn) !== "" and is_dir($dir.$fn))

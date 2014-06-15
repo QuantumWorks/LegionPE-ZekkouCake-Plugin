@@ -60,8 +60,7 @@ class Main extends MgMain implements Listener{
 				Builder::spleef()->getName() or !isset($this->sessions[$evt->getPlayer()->getID()]))
 			return;
 		if(($sid = $this->sessions[$evt->getPlayer()->getID()]) !== -1){
-			if($this->arenas[$sid]->onInteract($evt) === false)
-				$evt->setCancelled(true);
+			$this->arenas[$sid]->onInteract($evt);
 		}
 		else{
 			for($i = 1; $i <= 4; $i++){
@@ -81,7 +80,7 @@ class Main extends MgMain implements Listener{
 			$player->sendMessage("You can't join this arena! Reason: $reason");
 		}
 	}
-	public function quit($from, Player $player){
+	public function quit(Player $player){
 		$isTeam = count(explode(".", Hub::get()->getChannel($player))) === 5;
 		Hub::get()->setChannel($player, $isTeam ? "legionpe.chat.spleef.".$this->hub->getDb($player)->get("team"):"legionpe.chat.spleef.public");
 		$this->sessions[$player->getID()] = -1;
@@ -114,7 +113,7 @@ class Main extends MgMain implements Listener{
 	public function getDefaultChatChannel(Player $player, $TID){
 		return "legionpe.chat.spleef.public";
 	}
-	public function isJoinable(){
+	public function isJoinable(Player $player, $t){
 		return true;
 	}
 	public function getStats(Player $player, array $args = []){
@@ -124,7 +123,13 @@ class Main extends MgMain implements Listener{
 		}
 		return yaml_emit($this->hub->config->get("spleef")["top-wins"]);
 	}
+	public function getArena(Player $player){
+		return $this->sessions[$player->getID()];
+	}
 	public static $instance = false;
+	/**
+	 * @return self
+	 */
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];
 	}

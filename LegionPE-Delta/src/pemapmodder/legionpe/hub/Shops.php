@@ -9,7 +9,7 @@ use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 
-class Shops extends MgMain implements Listener{
+class Shops implements Listener{
 	public function __construct(){
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();

@@ -7,7 +7,7 @@ use pemapmodder\legionpe\hub\HubPlugin;
 use pemapmodder\legionpe\hub\Team;
 
 use pemapmodder\utils\DummyPlugin as Utils;
-
+use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\Player;
 use pocketmine\scheduler\PluginTask;
 use pocketmine\Server;
@@ -17,6 +17,8 @@ use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 
 class Arena extends PluginTask{
+	/** @var Main */
+	private $main;
 	public $hub, $id, $centre, $radius, $height, $floors;
 	protected $gfloor, $pfloor, $pwall, $pceil;
 	protected $prestartTicks = -1, $scheduleTicks = -1, $runtimeTicks = -1;
@@ -96,6 +98,7 @@ class Arena extends PluginTask{
 	public function quit(Player $player, $reason = "Unknown reason"){
 		unset($this->players[$player->getID()]);
 		$this->broadcast($player->getDisplayName()." left. Reason: $reason.");
+		$this->main->quit($player);
 	}
 	public function broadcast($message, $ret = null){
 		foreach($this->players as $p)
@@ -135,10 +138,10 @@ class Arena extends PluginTask{
 		foreach($this->players as $p)
 			$this->quit($p, "Match ended");
 	}
-	public function onInteract($event){
+	public function onInteract(PlayerInteractEvent $event){
 		if($this->status === 0){
 			$event->setCancelled(true);
-			return false;
+			return;
 		}
 		$p = $event->getPlayer();
 		$b = $event->getBlock();
@@ -152,7 +155,7 @@ class Arena extends PluginTask{
 			$event->setCancelled(true);
 			return;
 		}
-		if(mt_rand(1, 100) <= Main::get()->getChance($p)){
+		if(mt_rand(1, 100) <= $this->main->getChance($p)){
 			$b->level->setBlock($b, Block::get(0));
 		}
 		$this->tmpLog[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
