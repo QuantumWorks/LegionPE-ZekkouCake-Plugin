@@ -1,0 +1,26 @@
+name: LegionPE_Core
+version: 1.0.0
+api: [1.0.0]
+author: Lambo
+description: LegionPE_Core
+main: Lambo\LegionPE_Core\Main
+
+commands:
+	stats:
+		permission: legionpe.core.stats
+		description: View your stats!
+	hub:
+		permission: legionpe.core.hub
+		description: Teleport to the hub world!
+
+permissions:
+	legionpe.core.*:
+		default: op
+		description: Allows all commands.
+		children:
+			legionpe.core.stats:
+				default: true
+				description: /stats command
+			legionpe.core.hub:
+				default: true
+				description: /hub command
