@@ -147,14 +147,17 @@ namespace pemapmodder\legionpe\hub {
 	}
 }
 namespace{
+	use pemapmodder\legionpe\hub\HubPlugin;
+	use pocketmine\utils\TextFormat;
+
 	if(!function_exists("console")){
 		function console($msg){
-			$logger = \pemapmodder\legionpe\hub\HubPlugin::get()->getLogger();
+			$logger = HubPlugin::get()->getLogger();
 			if(is_callable(array($logger, "info"))){
 				$logger->info($msg);
 			}
 			else{
-				echo "";
+				echo date("H:i:s ").TextFormat::LIGHT_PURPLE."[LegionPE-Delta] ".$msg.PHP_EOL;
 			}
 		}
 	}

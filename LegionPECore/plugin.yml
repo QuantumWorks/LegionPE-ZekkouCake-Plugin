@@ -5,18 +5,19 @@ author: Lambo
 main: Lambo\LegionPECore\Main
 description: LegionPECore
 commands:
-    stats:
-        description: Shows your stats
-        usage: "/stats <pvp/parkour/spleef>"
-        permission: legionpe.command.stats
+#    stats:
+#        description: Shows your stats
+#        usage: "/stats <pvp/parkour/spleef>"
+#        permission: legionpe.command.stats
     hub:
         description: Teleport to hub
         usage: "/hub"
         permission: legionpe.command.hub
-    pvp:
-        description: Get your PVP kit
-        usage: "/pvp"
-        permission: legionpe.command.pvp
+#    pvp:
+#        description: Get your PVP kit
+#        usage: "/pvp"
+#        permission: legionpe.command.pvp
+# Things done at LegionPE-Delta
 permission:
     legionpe:
         default: op

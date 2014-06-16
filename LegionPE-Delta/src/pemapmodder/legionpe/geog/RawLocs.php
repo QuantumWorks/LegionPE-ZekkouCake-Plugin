@@ -2,9 +2,6 @@
 
 namespace pemapmodder\legionpe\geog;
 
-use pemapmodder\legionpe\hub\Shop;
-
-use pemapmodder\utils\oldapi\Level as Lv;
 use pemapmodder\utils\spaces\CuboidSpace as MySpace;
 
 use pocketmine\math\Vector3;
@@ -74,17 +71,5 @@ abstract class RawLocs{
 	}
 	public final static function enterCtfPor(){
 		return new MySpace(new Vector3(134, 30, 101), new Vector3(124, 42, 99), self::hub());
-	}
-	public final static function shop(){
-		return Server::getInstance()->getLevel("world_shop");
-	}
-	public final static function shopSpawn(){
-		return new Position(128, 128, 128, self::shop());
-	}
-	/**
-	 * @return Shop|null
-	 */
-	public final static function evalShopDetail(){
-		return null;
 	}
 }

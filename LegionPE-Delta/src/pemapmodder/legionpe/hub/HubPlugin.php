@@ -13,6 +13,7 @@ use pemapmodder\utils\CallbackPluginTask;
 use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\PluginCmdExt;
 use pocketmine\event\entity\EntityTeleportEvent;
+use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -149,7 +150,6 @@ class HubPlugin extends PluginBase implements Listener{
 	protected function initObjects(){ // initialize objects: Team, Hub, Shop, other minigames
 		Hub::init();
 		Team::init();
-		Shops::init();
 		Pvp::init();
 		Pk::init();
 		Spleef::init();
@@ -444,8 +444,18 @@ class HubPlugin extends PluginBase implements Listener{
 		Hub::get()->setChannel($p, "legionpe.chat.mute.".$p->getID());
 		$event->setJoinMessage("");
 		$this->openDb($p);
+	}
+	/**
+	 * @param EntitySpawnEvent $event
+	 * @priority HIGHEST
+	 */
+	public function onSpawn(EntitySpawnEvent $event){
+		$p = $event->getEntity();
+		if(!($p instanceof Player)){
+			return;
+		}
 		if($this->getDb($p)->get("pw-hash") === false){ // request register (LegionPE registry wizard), if password doesn't exist
-			console("Registering account of ".$p->getDisplayName());
+			console("Registering account of ".$p->getName());
 			$this->sessions[$p->getID()] = self::REGISTER;
 			$p->sendMessage("Welcome to the LegionPE account registry wizard.");
 			$p->sendMessage("Step 1:");
@@ -634,7 +644,9 @@ class HubPlugin extends PluginBase implements Listener{
 		if($this->sessions[$player->getID()] !== $session){
 			$class = Hub::get()->getMgClass($player);
 			if(is_string($class)){
-				$instance = $class::get();
+				/** @var \pemapmodder\legionpe\mgs\MgMain $instance */
+				$instance = null; // just to silent PHPStorm ;)
+				eval("\$instance = \$class::get();");
 				if(is_callable(array($instance, "onQuitMg"))){
 					$instance->onQuitMg($player);
 				}
