@@ -2,13 +2,14 @@
 
 namespace pemapmodder\legionpe\mgs\spleef;
 
-use pemapmodder\legionpe\geog\Position;
 use pemapmodder\legionpe\geog\RawLocs;
 
 use pemapmodder\utils\spaces\CuboidSpace as Space;
 use pemapmodder\utils\spaces\CylinderSpace as CS;
 
 use pocketmine\block\Block;
+use pocketmine\level\Position;
+use pocketmine\math\Vector3;
 
 class Builder extends RawLocs{
 	public static function build(Position $centre, $radius, Block $block, $floors, $height, $players, Block $pfloor, Block $wall, Block $ceil, &$floors = array()){
@@ -21,7 +22,7 @@ class Builder extends RawLocs{
 		$preps = array();
 		for($j = 0; $j < $players; $j++){
 			$deg = 360 / $players * $j;
-			self::buildPrep(($preps[] = new Position($centre->x + cos(deg2rad($deg)), $centre->y + 4, $centre->z + sin(deg2rad($deg)), $centre->level)), $pfloor, $wall, $ceil, 2);
+			self::buildPrep(($preps[] = new Position($centre->x + cos(deg2rad($deg)), $centre->y + 4, $centre->z + sin(deg2rad($deg)), $centre->getLevel())), $pfloor, $wall, $ceil, 2);
 		}
 		return $preps;
 		// TODO hollow circular wall; maybe just hand-make it?
@@ -42,7 +43,7 @@ class Builder extends RawLocs{
 		self::sb($c->add(0, $height), $ceil);
 	}
 	protected static function sb(Position $pos, Block $block){
-		$pos->level->setBlock($pos, $block, false, false, true);
+		$pos->getLevel()->setBlock($pos, $block, false, false, true);
 	}
 	public final static function signs($sid){
 		switch($sid & 0b11){
@@ -55,5 +56,6 @@ class Builder extends RawLocs{
 			case 4 & 0b11:
 				return new Space(new Vector3(130, 82, 104), new Vector3(126, 82, 104), parent::spleef());
 		}
+		return null;
 	}
 }

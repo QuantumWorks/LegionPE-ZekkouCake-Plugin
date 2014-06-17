@@ -7,23 +7,18 @@ use pemapmodder\legionpe\mgs\MgMain;
 use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Parkour;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
-use pemapmodder\legionpe\mgs\ctf\Main as CTF;
 
-use pemapmodder\utils\CallbackEventExe;
 use pemapmodder\utils\CallbackPluginTask;
 use pocketmine\command\CommandSender;
 use pocketmine\event\entity\EntityMoveEvent;
 use pocketmine\event\player\PlayerCommandPreprocessEvent;
 use pocketmine\event\player\PlayerInteractEvent;
-use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
 use pocketmine\command\CommandExecutor as CmdExe;
 use pocketmine\command\CommandSender as Issuer;
-use pocketmine\event\Event;
-use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\permission\DefaultPermissions as DP;
@@ -35,11 +30,8 @@ use pocketmine\permission\Permission as Perm;
 class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
-	protected $mutePA = array();
-	protected $pchannels = array();
-	protected $channels = array();
-	/** @var \pocketmine\permission\PermissionAttachment[][] $readPA access with $readPA[$CID][$channel] (no ".read" at the end of $channel) */
-	protected $readPA = array();
+	public $mutes = [];
+	protected $channels;
 	public static function defaultChannels(){
 		$r = array(
 			"legionpe.chat.public",
@@ -84,38 +76,23 @@ class Hub implements CmdExe, Listener{
 	public function __construct(){
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();
-		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat"), $this->server->getPluginManager()->getPermission("legionpe"));
+		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat", Perm::DEFAULT_FALSE), $this->server->getPluginManager()->getPermission("legionpe"));
 		foreach(static::defaultChannels() as $channel){
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
 		$pmgr = $this->server->getPluginManager();
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerInteractEvent", $this, EventPriority::LOWEST, new CallbackEventExe(array($this, "onInteractLP")), HubPlugin::get(), true);
-		$pmgr->registerEvent("pocketmine\\event\\entity\\EntityMoveEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onMove")), HubPlugin::get());
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerChatEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onChat")), HubPlugin::get());
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerQuitEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onQuit")), HubPlugin::get());
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerJoinEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onJoin")), HubPlugin::get());
-		$pmgr->registerEvent("pocketmine\\event\\player\\PlayerCommandPreprocessEvent", $this, EventPriority::HIGH, new CallbackEventExe(array($this, "onPreCmd")), HubPlugin::get());
+		$pmgr->registerEvents($this, $this->hub);
 	}
+	/**
+	 * @param PlayerChatEvent $evt
+	 * @priority HIGHEST
+	 */
 	public function onChat(PlayerChatEvent $evt){
-		$pfxs = HubPlugin::get()->getDb($p = $evt->getPlayer())->get("prefixes");
-		$team = HubPlugin::get()->getDb($p)->get("team");
-		if($team === false){
-			$evt->setCancelled(true);
-			return;
-		}
-		$pfxs["team"] = Team::get($team)["name"];
-		$rec = array();
-		$chan = $this->pchannels[$p->getID()];
-		foreach($evt->getRecipients() as $r){
-			if($r->hasPermission($chan.".read")){
-				$rec[] = $r;
-				break;
-			}
-		}
-		$evt->setRecipients($rec);
-		$format = $this->getPrefixes($p)."%s: %s";
-		$evt->setFormat($format);
-		console("[CHAT] <$chan>: ".$this->getPrefixes($p).$p->getDisplayName().": ".$evt->getMessage());
+		$p = $evt->getPlayer();
+		$evt->setCancelled(true);
+		$msg = $evt->getMessage();
+		$msg = $this->getPrefixes($p).$msg;
+		$this->server->broadcast($msg, $this->getWriteChannel($p).";legionpe.chat.monitor");
 	}
 	public function onQuitCmd(CommandSender $issuer, array $args){
 		if(!($issuer instanceof Player)){
@@ -123,7 +100,9 @@ class Hub implements CmdExe, Listener{
 			return true;
 		}
 		$class = $this->getMgClass($issuer);
-		eval("$class::get()->onQuitMg(\$issuer, \$args);");
+		$class::get()->onQuitMg($issuer, $args);
+		$perm = $class::get()->getPermission();
+		$this->hub->getPermAtt($issuer)->setPermission($perm, false);
 		return true;
 	}
 	public function onStatCmd(CommandSender $issuer, array $args){
@@ -136,8 +115,7 @@ class Hub implements CmdExe, Listener{
 			$issuer->sendMessage("You are not in a minigame!");
 		}
 		else{
-			$msg = "";
-			eval("\$msg = $class::get()->getStats(\$issuer, \$args)");
+			$msg = $class::get()->getStats($issuer, $args);
 			if(!is_string($msg)){
 				$issuer->sendMessage("Stats is unavailable here.");
 			}
@@ -204,6 +182,13 @@ class Hub implements CmdExe, Listener{
 				return false;
 		}
 	}
+	/**
+	 * Serves as a final check that avoids the player from changing the world
+	 * @param PlayerInteractEvent $evt
+	 * @priority MONITOR
+	 * @disclaimer I don't care. I WILL change things at MONITOR
+	 * @ignoreCancelled true
+	 */
 	public function onInteractLP(PlayerInteractEvent $evt){
 		$p = $evt->getPlayer();
 		if(HubPlugin::get()->getRank($p) !== "staff")
@@ -232,8 +217,9 @@ class Hub implements CmdExe, Listener{
 			$this->teleports[$p->getID()] = time();
 			$this->hub->sessions[$p->getID()] = $mg->getSessionId();
 			if(!$this->hub->getDb($p)->get("mute")){
-				$this->setChannel($p, $mg->getDefaultChatChannel($p, $TID));
+				$this->setWriteChannel($p, $mg->getDefaultChatChannel($p, $TID));
 			}
+			$this->hub->getPermAtt($p)->setPermission($mg->getPermission(), true);
 			$mg->onJoinMg($p);
 		}
 		else{
@@ -241,28 +227,32 @@ class Hub implements CmdExe, Listener{
 			$p->teleport(RL::spawn());
 		}
 	}
-	public function setChannel(Player $player, $channel = "legionpe.chat.general", $writeOnly = false, $reserveOld = false){
-		$oldChannel = isset($this->pchannels[$player->getID()]) ? $this->pchannels[$player->getID()]:false; // only remove the write channel
-		$this->pchannels[$player->getID()] = $channel;
-		if(!$writeOnly){
-			$this->readPA[$player->getID()][$channel] = $player->addAttachment($this->hub, $channel.".read", true);
-		}
-		if(!$reserveOld and $oldChannel !== false){
-			$player->removeAttachment($this->readPA[$player->getID()][$oldChannel]);
-			unset($this->readPA[$player->getID()][$oldChannel]);
-		}
-	}
-	public function getChannel(Player $player){
-		return $this->pchannels[$player->getID()];
+	public function setWriteChannel(Player $player, $channel = "legionpe.chat.general"){
+		$this->channels[$player->getID()] = $channel;
 	}
 	public function getWriteChannel(Player $player){
-		return $this->pchannels[$player->getID()];
+		return $this->channels[$player->getID()];
+	}
+	public function addReadChannel(Player $player, $channel = "legionpe.chat.general", $value = true){
+		$this->hub->getPermAtt($player)->setPermission($channel, $value);
+	}
+	public function removeReadChannel(Player $player, $channel){
+		$this->hub->getPermAtt($player)->unsetPermission($channel);
 	}
 	public function getReadChannels(Player $player){
-		return $this->readPA[$player->getID()];
+		$out = [];
+		foreach($this->hub->getPermAtt($player)->getPermissions() as $perm => $bool){
+			if(strpos($perm, "legionpe.chat.") === 0 and $bool === true){
+				$out[] = $perm;
+			}
+		}
+		return $out;
 	}
-	public function onJoin(PlayerJoinEvent $event){
-		$event->getPlayer()->addAttachment($this->hub, "legionpe.chat.mandatory", true);
+	public function mute(Player $player){
+		// TODO
+	}
+	public function unmute(Player $player){
+		// TODO
 	}
 	public function onPreCmd(PlayerCommandPreprocessEvent $event){
 		$p = $event->getPlayer();
@@ -274,10 +264,7 @@ class Hub implements CmdExe, Listener{
 		switch($command){
 			case "me":
 				$event->setCancelled(true);
-				foreach($this->server->getOnlinePlayers() as $player){
-					if($this->getChannel($player) === $this->getChannel($p) or $this->getChannel($p) === "legionpe.chat.mandatory")
-						$player->sendMessage("* {$this->getPrefixes($player)}{$player->getDisplayName()} ".implode(" ", $cmd));
-				}
+				$this->server->broadcast("* {$p->getDisplayName()} ".implode(" ", $cmd), $this->getWriteChannel($p));
 				break;
 			case "spawn":
 				$event->setCancelled(true);
@@ -299,28 +286,12 @@ class Hub implements CmdExe, Listener{
 					return "Please run this command in-game.";
 				switch($subcmd = array_shift($args)){
 					case "mute":
-						$this->mutePA[$isr->getID()] = array();
-						foreach(self::defaultChannels() as $channel){
-							$this->mutePA[$isr->getID()][] = $isr->addAttachment($this->hub, "$channel.read", false);
-						}
+						// TODO
 						break;
 					case "unmute":
-						while(count($this->mutePA[$isr->getID()]) > 0){
-							$att = array_shift($this->mutePA[$isr->getID()]);
-							$isr->removeAttachment($att);
-						}
-						break;
+						// TODO
 					case "ch":
-						if(!$isr->hasPermission("legionpe.cmd.chat.ch"))
-							return "You don't have permission to use /chat ch";
-						if(isset($args[0])){
-							$ch = array_shift($args);
-							if(($ch = $this->parseChannel($isr, $ch)) !== false){
-								return "Your chat channel has been set to \"$ch\"";
-							}
-							return "You don't have permission to create/join this chat channel";
-						}
-						return false;
+						// TODO
 				}
 				break;
 			case "help":

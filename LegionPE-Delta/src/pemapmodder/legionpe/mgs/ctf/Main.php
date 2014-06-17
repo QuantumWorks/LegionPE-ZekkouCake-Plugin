@@ -85,6 +85,9 @@ class Main extends MgMain{
 	public function getStats(Player $player, array $args = []){
 		return "W.I.P. feature!"; // TODO
 	}
+	public function getPermission(){
+		return "legionpe.mg.ctf";
+	}
 	public static function get(){
 		return HubPlugin::get()->statics[get_class()];
 	}

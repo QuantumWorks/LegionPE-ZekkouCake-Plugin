@@ -57,8 +57,8 @@ abstract class Space{
 	/**
 	 * Checks whether two Vector3 objects are identical.
 	 * 
-	 * @param Vector3 $arg0
-	 * @param Vector3 $arg1
+	 * @param Vector3 $a
+	 * @param Vector3 $b
 	 * @param bool $strict Default <code>false</code>.
 	 * @param bool $ignoreCoords Default <code>false</code>.
 	 * @param bool $ignoreLevel Default <code>false</code>.
@@ -71,12 +71,12 @@ abstract class Space{
 		}
 		if(($a instanceof Position) and ($b instanceof Position)){
 			if($ignoreLevel === false){
-				$result = $result and ($a->level->getName() === $b->level->getName());
+				$result = ($result and ($a->getLevel()->getName() === $b->getLevel()->getName()));
 			}
 			if(($a instanceof Block) and ($b instanceof Block)){
-				$result = $result and ($a->getID() === $b->getID());
+				$result = ($result and ($a->getID() === $b->getID()));
 				if($strict === true){
-					$result = $result and ($a->getMetadata() === $b->getMetadata());
+					$result = ($result and ($a->getDamage() === $b->getDamage()));
 				}
 			}
 		}

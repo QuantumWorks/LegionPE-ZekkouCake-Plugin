@@ -23,10 +23,6 @@ class Main extends MgMain implements Listener{
 	 * @var int[]
 	 */
 	public $sessions = array();
-	/**
-	 * @var \pocketmine\permission\PermissionAttachment[]
-	 */
-	protected $atchmts = array();
 	public function __construct(){
 		$this->hub = HubPlugin::get();
 		// TODO initialize arenas with raw coords data
@@ -80,9 +76,11 @@ class Main extends MgMain implements Listener{
 			$player->sendMessage("You can't join this arena! Reason: $reason");
 		}
 	}
-	public function quit(Player $player){
-		$isTeam = count(explode(".", Hub::get()->getChannel($player))) === 5;
-		Hub::get()->setChannel($player, $isTeam ? "legionpe.chat.spleef.".$this->hub->getDb($player)->get("team"):"legionpe.chat.spleef.public");
+	public function quit(Player $player){ // reset the player channel from the spleef
+		$hub = Hub::get();
+		if(strpos($hub->getWriteChannel($player), "spleef.s") !== false){
+			$hub->setWriteChannel($player, $this->getDefaultChatChannel($player, $this->hub->getDb($player)->get("team")));
+		}
 		$this->sessions[$player->getID()] = -1;
 	}
 	public function getChance(Player $player){
@@ -90,7 +88,6 @@ class Main extends MgMain implements Listener{
 	}
 	public function onJoinMg(Player $p){
 		$this->sessions[$p->getID()] = -1;
-		$this->atchmts[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.spleef", true);
 	}
 	public function onQuitMg(Player $p){
 		if(!isset($this->sessions[$p->getID()])) return;
@@ -98,8 +95,6 @@ class Main extends MgMain implements Listener{
 			$this->arenas[$s]->quit($p, "logout");
 		}
 		unset($this->sessions[$p->getID()]);
-		$p->removeAttachment($this->atchmts[$p->getID()]);
-		unset($this->atchmts[$p->getID()]);
 	}
 	public function getName(){
 		return "Spleef";
@@ -122,6 +117,9 @@ class Main extends MgMain implements Listener{
 			return "You have ".$db["wins"]." wins and ".$db["unwons"]." losses.";
 		}
 		return yaml_emit($this->hub->config->get("spleef")["top-wins"]);
+	}
+	public function getPermission(){
+		return "legionpe.mg.spleef";
 	}
 	public function getArena(Player $player){
 		return $this->sessions[$player->getID()];

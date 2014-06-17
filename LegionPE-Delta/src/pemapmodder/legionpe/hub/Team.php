@@ -1,13 +1,10 @@
 <?php
 
 namespace pemapmodder\legionpe\hub {
-	use pemapmodder\legionpe\geog\RawLocs as RL;
-	use pemapmodder\utils\DummyPlugin;
 	use pemapmodder\utils\CallbackPluginTask;
 
 	use pocketmine\Player;
 	use pocketmine\Server;
-	use pocketmine\block\Block;
 
 	class Team implements \ArrayAccess{
 		// static
@@ -61,26 +58,26 @@ namespace pemapmodder\legionpe\hub {
 			return $percent <= 5;
 		}
 		public static function updateSigns(){
-			for($i = 0; $i < 4; $i++){
-				if(self::canJoin($i)){
-					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("Tap me to join", "TEAM ".strtoupper(self::getTeam($i)->config["name"]));
-				}
-				else{
-					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("TEAM ".strtoupper(self::get($i)->config["name"]), "is now full.", "Come back later", "or join others");
-				}
-			}
+//			for($i = 0; $i < 4; $i++){
+//				if(self::canJoin($i)){
+//					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("Tap me to join", "TEAM ".strtoupper(self::getTeam($i)->config["name"]));
+//				}
+//				else{
+//					DummyPlugin::getTile(RL::chooseTeamSign($i))->setText("TEAM ".strtoupper(self::get($i)->config["name"]), "is now full.", "Come back later", "or join others");
+//				}
+//			}
 		}
 		public static function updateScoreBars(){
-			$scores = array();
-			for($i = 0; $i < 4; $i++){
-				$scores[$i] = self::get($i)->config["points"];
-			}
-			$max = max($scores);
-			for($i = 0; $i < 4; $i++){
-				$percent = max(0, $scores[$i]) / $max * 100;
-				RL::teamScoreBar($i, $percent)->setBlocks(Block::get(35, self::get($i)->config["color-meta"]));
-			}
-			console("[INFO] Hub score bars have been updated.");
+//			$scores = array();
+//			for($i = 0; $i < 4; $i++){
+//				$scores[$i] = self::get($i)->config["points"];
+//			}
+//			$max = max($scores);
+//			for($i = 0; $i < 4; $i++){
+//				$percent = max(0, $scores[$i]) / $max * 100;
+//				RL::teamScoreBar($i, $percent)->setBlocks(Block::get(35, self::get($i)->config["color-meta"]));
+//			}
+//			console("[INFO] Hub score bars have been updated.");
 		}
 		// non-static
 		public $config = array();

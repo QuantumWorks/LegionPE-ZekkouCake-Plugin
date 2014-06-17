@@ -6,13 +6,11 @@ use pemapmodder\legionpe\hub\Hub;
 use pemapmodder\legionpe\hub\HubPlugin;
 use pemapmodder\legionpe\hub\Team;
 
-use pemapmodder\utils\DummyPlugin as Utils;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\Player;
 use pocketmine\scheduler\PluginTask;
 use pocketmine\Server;
 use pocketmine\block\Block;
-use pocketmine\level\Level;
 use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 
@@ -22,8 +20,13 @@ class Arena extends PluginTask{
 	public $hub, $id, $centre, $radius, $height, $floors;
 	protected $gfloor, $pfloor, $pwall, $pceil;
 	protected $prestartTicks = -1, $scheduleTicks = -1, $runtimeTicks = -1;
-	public $status = 0, $players = array(), $preps;
-	protected $tmpLog = array(), $lastLevels = array(), $floorCyls = array();
+	public $status = 0;
+	/** @var Player[] */
+	public $players = array();
+	public $preps;
+	protected $tmpLog = array(), $lastLevels = array();
+	/** @var \pemapmodder\utils\spaces\CylinderSpace[] */
+	protected $floorCyls = array();
 	public function __construct($id, Position $topCentre, $radius, $height, $floors, $players, Block $floor, Block $pfloor, Block $pwall, Block $pceil){
 		$this->hub = HubPlugin::get();
 		$this->server = Server::getInstance();
@@ -54,10 +57,10 @@ class Arena extends PluginTask{
 		}
 		$this->refresh();
 		$this->status = 0;
-		/** @var \pocketmine\tile\Sign $tile */
-		foreach(Utils::getTile(Builder::signs($this->id)->getBlockMap()) as $tile){
-			$tile->setText("0 / {$this->pcnt}", "JOINABLE!", "Join Arena {$this->id}");
-		}
+//		/** @var \pocketmine\tile\Sign $tile */
+//		foreach(Utils::getTile(Builder::signs($this->id)->getBlockMap()) as $tile){
+//			$tile->setText("0 / {$this->pcnt}", "JOINABLE!", "Join Arena {$this->id}");
+//		}
 	}
 	public function isJoinable(){
 		if($this->status === 1)
@@ -156,7 +159,7 @@ class Arena extends PluginTask{
 			return;
 		}
 		if(mt_rand(1, 100) <= $this->main->getChance($p)){
-			$b->level->setBlock($b, Block::get(0));
+			$b->getLevel()->setBlock($b, Block::get(0));
 		}
 		$this->tmpLog[$b->x.",".$b->y.",".$b->z] = array($p->getDisplayName(), HubPlugin::get()->getTeam($p)->getTeam(), time()); // as lightweight as possible
 	}

@@ -26,7 +26,6 @@ class Parkour extends MgMain implements Listener{
 		3=>"hard",
 		4=>"extreme"
 	);
-	protected $attachments = array();
 	public function __construct(){
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();
@@ -75,11 +74,8 @@ class Parkour extends MgMain implements Listener{
 		}
 	}
 	public function onJoinMg(Player $p){
-		$this->attachments[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pk", true);
 	}
 	public function onQuitMg(Player $p){
-		$p->removeAttachment($this->attachments[$p->getID()]);
-		unset($this->attachments[$p->getID()]);
 	}
 	public function getName(){
 		return "Parkour";
@@ -95,6 +91,9 @@ class Parkour extends MgMain implements Listener{
 	}
 	public function isJoinable(Player $player, $t){
 		return true;
+	}
+	public function getPermission(){
+		return "legionpe.mg.pk";
 	}
 	public static $i = false;
 	public static function get(){

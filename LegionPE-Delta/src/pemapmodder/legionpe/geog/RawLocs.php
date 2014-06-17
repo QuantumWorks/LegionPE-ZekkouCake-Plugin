@@ -43,19 +43,19 @@ abstract class RawLocs{
 		return new MySpace(new Vector3(100, 31, 125), new Vector3(100, 32, 133), self::hub());
 	}
 	public final static function hub(){
-		return Server::getInstance()->getLevel("world");
+		return self::getLevel("world");
 	}
 	public final static function spawn(){
 		return new Position(129, 33, 129, self::hub());
 	}
 	public final static function spleef(){
-		return Server::getInstance()->getLevel("world_spleef");
+		return self::getLevel("world_spleef");
 	}
 	public final static function spleefSpawn(){
 		return new Position(128, 81, 123, self::spleef());
 	}
 	public final static function parkour(){
-		return Server::getInstance()->getLevel("world_parkour");
+		return self::getLevel("world_parkour");
 	}
 	public final static function pk(){
 		return self::parkour();
@@ -64,12 +64,20 @@ abstract class RawLocs{
 		return self::pk()->getSafeSpawn();
 	}
 	public final static function pvp(){
-		return Server::getInstance()->getLevel("world_pvp");
+		return self::getLevel("world_pvp");
 	}
 	public final static function pvpSpawn(){
 		return self::pvp()->getSafeSpawn();
 	}
 	public final static function enterCtfPor(){
 		return new MySpace(new Vector3(134, 30, 101), new Vector3(124, 42, 99), self::hub());
+	}
+	public final static function getLevel($name){
+		foreach(Server::getInstance()->getLevels() as $level){
+			if($level->getName() === $name){
+				return $level;
+			}
+		}
+		return false;
 	}
 }

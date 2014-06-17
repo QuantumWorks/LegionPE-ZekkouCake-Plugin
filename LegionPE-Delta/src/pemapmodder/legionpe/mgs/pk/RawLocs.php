@@ -10,9 +10,10 @@ abstract class RawLocs extends ParentClass{
 	public static function fallY(){
 		return 71;
 	}
-	public abstract static function signPrefix(Vector3 $pos){
-		foreach(array("x", "y", "z") as $c)
-			eval("\$".$c." = \$pos->$c;");
+	public static function signPrefix(Vector3 $pos){
+		$x = $pos->x;
+		$y = $pos->y;
+		$z = $pos->z;
 		if($y === 74){
 			if($z === 35 or $z === 99){
 				if($x === 66)

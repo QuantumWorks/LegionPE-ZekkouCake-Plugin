@@ -3,18 +3,15 @@
 namespace pemapmodder\legionpe\mgs\pvp;
 
 use pemapmodder\legionpe\hub\HubPlugin;
-use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
 
 use pemapmodder\utils\PluginCmdExt as Cmd;
-
+use pocketmine\event\player\PlayerRespawnEvent;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
 use pocketmine\command\CommandExecutor as CmdExe;
 use pocketmine\command\CommandSender as Issuer;
-use pocketmine\event\Event;
-//use pocketmine\event\EventPriority;
 use pocketmine\event\Listener;
 use pocketmine\item\Item;
 use pocketmine\permission\DefaultPermissions as DP;
@@ -22,7 +19,6 @@ use pocketmine\permission\Permission as Perm;
 
 class Pvp extends MgMain implements CmdExe, Listener{
 	public $pvpDies = array();
-	protected $attachments = array();
 	public function __construct(){
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();
@@ -70,10 +66,11 @@ class Pvp extends MgMain implements CmdExe, Listener{
 				$this->equip($isr);
 				return "PvP kit given!";
 			case "class":
-				
+				// TODO
 		}
+		return true;
 	}
-	public function onDeath(Event $event){
+	/*public function onDeath(Event $event){
 		$p = $event->getEntity();
 		if(!($p instanceof Player) or $p->getLevel()->getName() !== "world_pvp") return;
 		$cause = $event->getCause();
@@ -93,13 +90,10 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$config->save();
 		$p->sendMessage("Your number of deaths is now {$data["deaths"]}!");
 		$event->setMessage("");
-	}
+	}*/
 	public function onJoinMg(Player $p){
-		$this->attachments[$p->getID()] = $p->addAttachment($this->hub, "legionpe.cmd.mg.pvp", true);
 	}
 	public function onQuitMg(Player $p){
-		$p->removeAttachment($this->attachments[$p->getID()]);
-		unset($this->attachments[$p->getID()]);
 	}
 	public function getName(){
 		return "KitPvP";
@@ -116,6 +110,9 @@ class Pvp extends MgMain implements CmdExe, Listener{
 	public function isJoinable(Player $player, $t){
 		return true;
 	}
+	public function getPermission(){
+		return "legionpe.mg.pvp";
+	}
 	public function getStats(Player $player, array $args = []){
 		if(isset($args[0]) and strtolower($args[0]) === "top"){
 			return str_replace(PHP_EOL, "\n", yaml_emit($this->hub->config->get("kitpvp")["top-kills"]));
@@ -126,7 +123,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$output .= "Ratio: ".round($data["kills"]/$data["deaths"], 3);
 		return $output;
 	}
-	public function onRespawn(Event $event){
+	public function onRespawn(PlayerRespawnEvent $event){
 		/** @var Player $p */
 		$p = $event->getPlayer();
 		if(@$this->pvpDies[$p->getID()] !== true)
@@ -136,14 +133,14 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		$this->pvpDies[$p->getID()] = false;
 		unset($this->pvpDies[$p->getID()]);
 	}
-	public function onHurt(Event $event){
+	/*public function onHurt(Event $event){
 		$p = $event->getEntity();
 		if(!($p instanceof Player)) return;
 		$cause = $event->getCause();
 		if(in_array($cause, array("suffocation", "falling")))
 			$event->setCancelled(true);
-	}
-	public function onAttack(Event $event){
+	}*/
+	/*public function onAttack(Event $event){
 		$p = $event->getPlayer();
 		if($p instanceof Player){
 			if((RawLocs::safeArea()->isInside($p) or RawLocs::safeArea()->isInside($event->getVictim()))and !$p->hasPermission("legionpe.mg.pvp.spawnattack")){
@@ -154,7 +151,7 @@ class Pvp extends MgMain implements CmdExe, Listener{
 				$event->setCancelled(true);
 			}
 		}
-	}
+	}*/
 	public function onKill(Player $killer){
 		$db = $this->hub->getDb($killer);
 		$data = $db->get("kitpvp");

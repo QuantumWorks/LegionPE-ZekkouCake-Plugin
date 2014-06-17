@@ -12,8 +12,8 @@ class CuboidSpace extends Space{
 	/**
 	 * Constructs a new CuboidSpace object.
 	 * 
-	 * @param Vector3 $start raw start-selection point of Space.
-	 * @param Vector3 $end raw end-selection point of Space.
+	 * @param Vector3 $s raw start-selection point of Space.
+	 * @param Vector3 $e raw end-selection point of Space.
 	 * @param Level $level the level of the Space.
 	 */
 	public function __construct(Vector3 $s, Vector3 $e, Level $level){
@@ -39,15 +39,19 @@ class CuboidSpace extends Space{
 		return ($this->cookedStart->x <= $pos->x and $this->cookedEnd->x >= $pos->x)
 				and ($this->cookedStart->y <= $pos->y and $this->cookedEnd->y >= $pos->y)
 				and ($this->cookedStart->z <= $pos->z and $this->cookedEnd->z >= $pos->z)
-				and ($pos->level->getName() === $this->rawEnd->level->getName());
+				and ($pos->getLevel()->getName() === $this->rawEnd->getLevel()->getName());
 	}
+	/**
+	 * @param bool $get
+	 * @return Position[]|Block[]
+	 */
 	public function getBlockMap($get = false){
 		$list = array();
 		for($x = $this->cookedStart->x; $x <= $this->cookedEnd->x; $x++){
 			for($y = $this->cookedStart->y; $y <= $this->cookedEnd->y; $y++){
 				for($z = $this->cookedStart->z; $z <= $this->cookedEnd->z; $z++){
 					$v = new Vector3($x, $y, $z);
-					if($get) $list[] = $this->rawEnd->level->getBlock($v);
+					if($get) $list[] = $this->rawEnd->getLevel()->getBlock($v);
 					else $list[] = $v;
 				}
 			}
@@ -57,7 +61,7 @@ class CuboidSpace extends Space{
 	public function setBlocks(Block $block){
 		$cnt = 0;
 		$this->recook();
-		$level = $this->rawEnd->level;
+		$level = $this->rawEnd->getLevel();
 		foreach($this->getBlockMap() as $v){
 			if(!$this->isIdentical($level->getBlock($v), $block, true, true, true)){
 				$cnt++;
@@ -69,10 +73,12 @@ class CuboidSpace extends Space{
 	public function replaceBlocks(Block $old, Block $new, $meta = true){
 		$cnt = 0;
 		$this->recook();
-		$l = $this->rawEnd->level;
+		$l = $this->rawEnd->getLevel();
+
 		foreach($this->getBlockMap(true) as $b){
-			if($b->getID() === $old->getID() and $b->getMetadata() === $old->getMetadata())
+			if($b->getID() === $old->getID() and $b->getDamage() === $old->getDamage())
 				$l->setBlock($b, $new, false, false, true);
 		}
+		return $cnt;
 	}
 }

@@ -33,6 +33,10 @@ abstract class MgMain{
 	 * @return mixed
 	 */
 	public abstract function getStats(Player $player, array $args = []);
+	/**
+	 * @return string
+	 */
+	public abstract function getPermission();
 //	public abstract static function init();
 //	/**
 //	 * @return self

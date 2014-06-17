@@ -5,6 +5,7 @@ namespace pemapmodder\utils;
 use pocketmine\command\CommandExecutor as CmdExe;
 use pocketmine\command\CommandSender as Issuer;
 use pocketmine\command\CommandMap;
+use pocketmine\Server;
 use pocketmine\utils\TextFormat as Font;
 
 use pocketmine\command\PluginCommand as ParentClass;
@@ -31,7 +32,7 @@ class PluginCmdExt extends ParentClass{
 			return $result;
 		}
 		if(!is_string($result)){
-			trigger_error("Unexpected return type from ".Font::YELLOW.get_class($this->executor)."::onCommand(CommandSender, Command, string, array)".Font::RED.", !(string|bool|null): ".print_r($result, true), E_USER_WARNING);
+			trigger_error("Unexpected return type from ".Font::YELLOW.get_class($this->pexecutor)."::onCommand(CommandSender, Command, string, array)".Font::RED.", !(string|bool|null): ".print_r($result, true), E_USER_WARNING);
 			return true;
 		}
 		$issuer->sendMessage("$result");

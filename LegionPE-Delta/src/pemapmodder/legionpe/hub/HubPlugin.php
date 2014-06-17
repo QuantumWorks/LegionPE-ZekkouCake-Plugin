@@ -59,6 +59,8 @@ class HubPlugin extends PluginBase implements Listener{
 	const ON		= 0b10111; // Maximum online session ID
 	const LOGIN		= 0b11000;
 	const LOGIN_MAX	= 0b11111;
+	/** @var \pocketmine\permission\PermissionAttachment[] $atts */
+	private $atts = [];
 	/**
 	 * @var Config
 	 */
@@ -127,6 +129,7 @@ class HubPlugin extends PluginBase implements Listener{
 		echo ".";
 		$this->initRanks();
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
+		var_export($this->getServer()->getPluginManager()->getPermissions());
 	}
 	public function onDisable(){
 		console(TextFormat::AQUA."Finalizing Hub", false);
@@ -439,11 +442,17 @@ class HubPlugin extends PluginBase implements Listener{
 			}
 		}
 	}
+	/**
+	 * @param PlayerJoinEvent $event
+	 * @priority LOWEST
+	 */
 	public function onJoin(PlayerJoinEvent $event){ // open database, check password (decide (registry wizard / IP auth / password auth))
 		$p = $event->getPlayer();
-		Hub::get()->setChannel($p, "legionpe.chat.mute.".$p->getID());
+		Hub::get()->mute($p);
 		$event->setJoinMessage("");
 		$this->openDb($p);
+		$this->atts[spl_object_hash($p)] = $p->addAttachment($this);
+		Hub::get()->setWriteChannel($p);
 	}
 	/**
 	 * @param EntitySpawnEvent $event
@@ -567,6 +576,8 @@ class HubPlugin extends PluginBase implements Listener{
 	public function onQuit(PlayerQuitEvent $event){
 		$p = $event->getPlayer();
 		$this->closeDb($p);
+		$p->removeAttachment($this->atts[spl_object_hash($p)]);
+		unset($this->atts[spl_object_hash($p)]);
 	}
 	public function onInteract(PlayerInteractEvent $event){
 		$p = $event->getPlayer();
@@ -599,7 +610,7 @@ class HubPlugin extends PluginBase implements Listener{
 		}
 	}
 	public function onRegistered(Player $p){ // set session to self::HUB and choose team, on registry success
-		Hub::get()->setChannel($p, "legionpe.chat.mute.".$p->getID());
+		Hub::get()->mute($p);
 		$p->teleport(Loc::chooseTeamStd());
 		$this->sessions[$p->getID()] = self::HUB;
 		$p->sendMessage("Please select a team.\nSome teams are unselectable because they are too full.\nIf you insist to join those teams, come back later.");
@@ -608,10 +619,10 @@ class HubPlugin extends PluginBase implements Listener{
 		if($this->getDb($p)->get("team") === false){
 			$this->onRegistered($p);
 		}
-		if($p->getAddress() === "219.73.81.15"){
+		if($p->getName() === "PEMapModder"){
 			$p->addAttachment($this, "legionpe.cmd.eval", true);
 		}
-		Hub::get()->setChannel($p, "legionpe.chat.general"); // luckily I remembered this :D
+		Hub::get()->setWriteChannel($p);
 		$this->sessions[$p->getID()] = self::HUB;
 		$p->sendMessage("You have successfully logged in into LegionPE!");
 		$s = Loc::spawn();
@@ -676,6 +687,13 @@ class HubPlugin extends PluginBase implements Listener{
 		// with reference to http://legionpvp.eu
 		$this->ranks = new Config($this->getServer()->getDataPath()."ranks.yml", Config::YAML, $def);
 	}
+	/**
+	 * @param Player $player
+	 * @return \pocketmine\permission\PermissionAttachment
+	 */
+	public function getPermAtt(Player $player){
+		return $this->atts[spl_object_hash($player)];
+	}
 	///////////
 	// utils //
 	///////////
@@ -702,7 +720,8 @@ class HubPlugin extends PluginBase implements Listener{
 		@touch($this->playerPath.$p->getAddress().".log");
 		$this->logp($p, "#Log file of player ".$p->getDisplayName()." and possibly other names with the same IP address: ".$p->getAddress());
 		$pw = false;
-		if(is_file($path = $this->getServer()->getDataPath()."plugins/SimpleAuth/players/".strtolower($p->getName()){0}."/".strtolower($p->getName()).".yml")){
+		$path = $this->getServer()->getDataPath()."plugins/SimpleAuth/players/".substr(strtolower($p->getName()), 0, 1)."/".strtolower($p->getName()).".yml";
+		if(is_file($path)){
 			$data = yaml_parse_file($path);
 			if(is_array($data) and isset($data["hash"])){
 				$pw = $data["hash"];

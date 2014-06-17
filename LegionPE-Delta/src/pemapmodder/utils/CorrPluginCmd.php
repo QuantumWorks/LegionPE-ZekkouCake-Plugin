@@ -2,7 +2,6 @@
 
 namespace pemapmodder\utils;
 
-use pocketmine\command\Command;
 use pocketmine\command\CommandMap;
 
 class CorrPluginCmd extends PluginCmdExt{
