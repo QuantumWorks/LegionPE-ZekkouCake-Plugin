@@ -2,7 +2,7 @@
 
 namespace pemapmodder\legionpe\hub {
 	use pemapmodder\utils\CallbackPluginTask;
-
+	use pocketmine\item\Item;
 	use pocketmine\Player;
 	use pocketmine\Server;
 
@@ -120,6 +120,30 @@ namespace pemapmodder\legionpe\hub {
 		}
 		public function getTeam(){
 			return $this->team;
+		}
+		/**
+		 * @return int[]
+		 */
+		public function getArmor(){
+			$base = 0;
+			switch($this->team){
+				case 0:
+					$base = Item::LEATHER_CAP;
+					break;
+				case 1:
+					$base = Item::DIAMOND_HELMET;
+					break;
+				case 2:
+					$base = Item::GOLDEN_SHOVEL;
+					break;
+				case 3:
+					$base = Item::IRON_HELMET;
+			}
+			$out = [];
+			for($i = 0; $i < 4; $i++){
+				$out[$i] = $base + $i;
+			}
+			return $out;
 		}
 		/**
 		 * IDK why I must document this to suppress PHPStorm's warning

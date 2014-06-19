@@ -4,6 +4,7 @@ namespace pemapmodder\legionpe\hub;
 
 use pemapmodder\legionpe\geog\RawLocs as Loc;
 use pemapmodder\legionpe\geog\Position as MyPos;
+use pemapmodder\legionpe\mgs\MinigameMenu;
 use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Pk;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
@@ -15,6 +16,7 @@ use pemapmodder\utils\PluginCmdExt;
 use pocketmine\event\entity\EntityTeleportEvent;
 use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\player\PlayerPreLoginEvent;
+use pocketmine\inventory\InventoryHolder;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
@@ -45,7 +47,7 @@ require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."Team.php");
  * @parent PluginBase
  * @interface Listener
  */
-class HubPlugin extends PluginBase implements Listener{
+class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 	const CURRENT_VERSION = 0;
 	const V_INITIAL = 0;
 	const REGISTER	= 0b00010;
@@ -101,6 +103,8 @@ class HubPlugin extends PluginBase implements Listener{
 	 * @var string
 	 */
 	public $playerPath;
+	/** @var MinigameMenu */
+	private $mgMenu;
 //	/**
 //	 * @var SMG
 //	 */
@@ -157,6 +161,7 @@ class HubPlugin extends PluginBase implements Listener{
 		Pk::init();
 		Spleef::init();
 		CTF::init();
+		$this->mgMenu = new MinigameMenu($this);
 //		$this->SMG = new SMG($this);
 	}
 	protected function initPerms(){ // initialize core permissions
@@ -792,6 +797,9 @@ class HubPlugin extends PluginBase implements Listener{
 	 */
 	public function getTeam($i){
 		return $this->teams[Team::evalI($i)];
+	}
+	public function getInventory(){
+		return $this->mgMenu;
 	}
 	public static function getRules(){
 		$output = [];

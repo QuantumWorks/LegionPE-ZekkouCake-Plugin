@@ -39,6 +39,9 @@ abstract class RawLocs{
 	public final static function enterPkPor(){
 		return new MySpace(new Vector3(134, 30, 157), new Vector3(124, 42, 159), self::hub());
 	}
+	public final static function enterSpleefPor(){
+		return new MySpace(new Vector3(101, 30, 124), new Vector3(99, 42, 134), self::spleef());
+	}
 	public final static function spleefSigns(){
 		return new MySpace(new Vector3(100, 31, 125), new Vector3(100, 32, 133), self::hub());
 	}

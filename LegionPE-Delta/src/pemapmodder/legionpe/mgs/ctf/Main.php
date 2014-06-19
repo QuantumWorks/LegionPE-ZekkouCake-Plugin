@@ -4,10 +4,15 @@ namespace pemapmodder\legionpe\mgs\ctf;
 
 use pemapmodder\legionpe\hub\Hub;
 use pemapmodder\legionpe\hub\HubPlugin;
+use pemapmodder\legionpe\hub\Team;
 use pemapmodder\legionpe\mgs\MgMain;
 use pemapmodder\utils\FileUtils;
+use pocketmine\network\protocol\PlayerArmorEquipmentPacket;
+use pocketmine\permission\DefaultPermissions;
+use pocketmine\permission\Permission;
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\network\protocol\DataPacket;
 
 class Main extends MgMain{
 	const STATE_REINITIALIZING = 0;
@@ -16,9 +21,16 @@ class Main extends MgMain{
 	const STATE_FINALIZING = 3;
 	private $state = self::STATE_REINITIALIZING;
 	private $players = [];
+	/** @var RawLocs */
+	private $builder;
 	public function __construct(){
 		$this->hub = HubPlugin::get();
 		$this->server = Server::getInstance();
+		$parent = DefaultPermissions::registerPermission(new Permission("legionpe.mg.ctf", "Allow doing everything in CTF", Permission::DEFAULT_FALSE));
+		$team = DefaultPermissions::registerPermission(new Permission("legionpe.mg.ctf.team", "Identity as all teams - NEVER give this to anyone", Permission::DEFAULT_FALSE), $parent);
+		for($i = 0; $i < 4; $i++){
+			DefaultPermissions::registerPermission(new Permission("legionpe.mg.ctf.$i", "Identity as team $i", Permission::DEFAULT_FALSE), $team);
+		}
 	}
 	public function wait(){
 		@FileUtils::del(Rawlocs::worldPath());
@@ -28,6 +40,23 @@ class Main extends MgMain{
 	}
 	public function finalize(){
 		$this->server->unloadLevel($this->server->getLevel(RawLocs::worldName()));
+	}
+	public function start(){
+		$this->state = self::STATE_PLAYING;
+		/** @var Player[] $ps */
+		foreach($this->players as $team => $ps){
+			/** @var PlayerArmorEquipmentPacket $pk */
+			$pk = new PlayerArmorEquipmentPacket;
+			$pk->slots = Team::get($team)->getArmor();
+			foreach($ps as $p){
+				$tempPk = clone $pk;
+				$tempPk->eid = $p->getID();
+				$this->broadcastPacket($tempPk, $p);
+			}
+		}
+		$this->broadcastMessage("The tournament has started!");
+		$this->builder = new Rawlocs;
+		$this->builder->init();
 	}
 	public function end(){
 		foreach($this->getAllPlayers() as $p){
@@ -41,10 +70,19 @@ class Main extends MgMain{
 	public function onJoinMg(Player $p){
 		$t = $this->hub->getDb($p)->get("team");
 		$this->players[$t][$p->getID()] = $p;
+		$this->hub->getPermAtt($p)->setPermission("legionpe.mg.ctf.$t", true);
+		if(min(count($this->players[0]), count($this->players[1]), count($this->players[2]), count($this->players[3])) === 2){
+			$this->start();
+		}
 	}
 	public function onQuitMg(Player $p){
 		$t = $this->hub->getDb($p)->get("team");
 		unset($this->players[$t][$p->getID()]);
+		$this->hub->getPermAtt($p)->setPermission("legionpe.mg.ctf.$t", false);
+		///////////////////////////////////////
+		// above and below, which is better? //
+		///////////////////////////////////////
+		$this->hub->getPermAtt($p)->unsetPermission("legionpe.mg.ctf.$t");
 	}
 	/**
 	 * @return Player[]
@@ -58,6 +96,29 @@ class Main extends MgMain{
 			}
 		}
 		return $out;
+	}
+	public function broadcastPacket(DataPacket $packet, $exception = false){
+		if($exception instanceof Player){
+			foreach($this->getAllPlayers() as $p){
+				if($p->getID() !== $exception->getID()){
+					$p->dataPacket($packet);
+				}
+			}
+		}
+		elseif(is_int($exception)){
+			foreach($this->players as $team => $players){
+				if($team === $exception) continue;
+				/** @var Player $p */
+				foreach($players as $p){
+					$p->dataPacket($packet);
+				}
+			}
+		}
+		else{
+			foreach($this->getAllPlayers() as $p){
+				$p->dataPacket($packet);
+			}
+		}
 	}
 	public function broadcastMessage($msg){
 		foreach($this->getAllPlayers() as $p){

@@ -6,6 +6,13 @@ use pocketmine\plugin\Plugin;
 use pocketmine\scheduler\PluginTask;
 
 class CallbackPluginTask extends PluginTask{
+	private $cancelled = false;
+	/** @var callable */
+	private $cb;
+	/** @var array|mixed */
+	private $data;
+	/** @var bool */
+	private $useArray;
 	/**
 	 * @param callable $callback
 	 * @param Plugin $owner
@@ -19,6 +26,7 @@ class CallbackPluginTask extends PluginTask{
 		$this->useArray = $asArray;
 	}
 	public function onRun($t){
+		if($this->cancelled) return;
 		if($this->useArray === true)
 			call_user_func_array($this->cb, $this->data);
 		elseif($this->useArray === 2){
@@ -27,5 +35,11 @@ class CallbackPluginTask extends PluginTask{
 		else{
 			call_user_func($this->cb, $this->data);
 		}
+	}
+	public function cancel(){
+		$this->cancelled = true;
+	}
+	public function resume(){
+		$this->cancelled = false;
 	}
 }

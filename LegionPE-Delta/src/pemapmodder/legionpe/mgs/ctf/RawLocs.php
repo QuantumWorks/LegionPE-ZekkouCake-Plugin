@@ -7,7 +7,7 @@ use pocketmine\block\Block;
 use pocketmine\Server;
 use pocketmine\level\Position as Pos;
 
-abstract class Rawlocs extends ParentClass{
+class Rawlocs extends ParentClass{
 	const FLAG_0 = 0b00000100;
 	const FLAG_1 = 0b00000101;
 	const FLAG_2 = 0b00000110;
@@ -52,5 +52,8 @@ abstract class Rawlocs extends ParentClass{
 	}
 	public final static function isBlockBreakable(){
 		return false;
+	}
+	public function init(){
+
 	}
 }

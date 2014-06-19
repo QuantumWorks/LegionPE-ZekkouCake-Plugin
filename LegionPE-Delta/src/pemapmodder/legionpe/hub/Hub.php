@@ -4,9 +4,10 @@ namespace pemapmodder\legionpe\hub;
 
 use pemapmodder\legionpe\geog\RawLocs as RL;
 use pemapmodder\legionpe\mgs\MgMain;
+use pemapmodder\legionpe\mgs\pk\Parkour;
 use pemapmodder\legionpe\mgs\pvp\Pvp;
-use pemapmodder\legionpe\mgs\pk\Parkour as Parkour;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
+use pemapmodder\legionpe\mgs\ctf\Main as CTF;
 
 use pemapmodder\utils\CallbackPluginTask;
 use pocketmine\command\CommandSender;
@@ -30,6 +31,7 @@ use pocketmine\permission\Permission as Perm;
 class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
+	/** @var CallbackPluginTask[] */
 	public $mutes = [];
 	protected $channels;
 	public static function defaultChannels(){
@@ -194,19 +196,27 @@ class Hub implements CmdExe, Listener{
 		if(HubPlugin::get()->getRank($p) !== "staff")
 			$evt->setCancelled(true);
 	}
-	public function onMove(EntityMoveEvent $evt){
-		$p = $evt->getEntity();
-		if(!($p instanceof Player))
-			return;
-		if(time() - ((int)@$this->teleports[$p->getID()]) <= 3)
-			return;
-		if(RL::enterPvpPor()->isInside($p)){
-			$this->joinMg($p, Pvp::get());
-		}
-		elseif(RL::enterPkPor()->isInside($p)){
-			$this->joinMg($p, Parkour::get());
-		}
-	}
+//	public function onMove(EntityMoveEvent $evt){
+//		$p = $evt->getEntity();
+//		if(!($p instanceof Player)){
+//			return;
+//		}
+//		if(time() - ((int) @$this->teleports[$p->getID()]) <= 3){
+//			return;
+//		}
+//		if(RL::enterPvpPor()->isInside($p)){
+//			$this->joinMg($p, Pvp::get());
+//		}
+//		elseif(RL::enterPkPor()->isInside($p)){
+//			$this->joinMg($p, Parkour::get());
+//		}
+//		elseif(RL::enterCtfPor()->isInside($p)){
+//			$this->joinMg($p, CTF::get());
+//		}
+//		elseif(RL::enterSpleefPor()->isInside($p)){
+//			$this->joinMg($p, Spleef::get());
+//		}
+//	}
 	protected function joinMg(Player $p, MgMain $mg){
 		$TID = $this->hub->getDb($p)->get("team");
 		if(($reason = $mg->isJoinable($p, $TID)) === true){
@@ -248,12 +258,6 @@ class Hub implements CmdExe, Listener{
 		}
 		return $out;
 	}
-	public function mute(Player $player){
-		// TODO
-	}
-	public function unmute(Player $player){
-		// TODO
-	}
 	public function onPreCmd(PlayerCommandPreprocessEvent $event){
 		$p = $event->getPlayer();
 		if(substr($event->getMessage(), 0, 1) !== "/"){
@@ -275,77 +279,55 @@ class Hub implements CmdExe, Listener{
 	}
 	public function onCommand(Issuer $isr, Command $cmd, $lbl, array $args){
 		$output = "";
-		if(!($isr instanceof Player))
-			return "Please run this command in-game.";
 		switch($cmd->getName()){
-			case "mute":
-			case "unmute":
-				array_unshift($args, $cmd->getName());
 			case "chat":
-				if(!($isr instanceof Player))
-					return "Please run this command in-game.";
-				switch($subcmd = array_shift($args)){
-					case "mute":
-						// TODO
-						break;
-					case "unmute":
-						// TODO
-					case "ch":
-						// TODO
-				}
 				break;
-			case "help":
-				$output = "Showing help of /chat, /mute and /unmute:\n";
-			default:
-				$output .= "/unmute: Equal to /chat unmute";
-				$output .= "/mute: Equal to /chat mute";
-				$output .= "/chat mute: Equal to \"/chat ch m\" or \"/chat ch mute\"";
-				$output .= "/chat ch <channel> Join a chat channel";
-				return $output;
+			case "channel":
+				break;
+			case "mute":
+				if(!isset($args[0])){
+					return "Usage: /mute <player> [minutes = 30]";
+				}
+				$target = $this->server->getPlayer($name = array_shift($args));
+				if(!($target instanceof Player)){
+					return "Player not found!";
+				}
+				$length = 30;
+				if(isset($args[0]) and is_numeric($args[0])){
+					$length = floatval($length);
+				}
+				$ip = $target->getAddress();
+				$this->mutes[$ip] = new CallbackPluginTask(array($this, "unmute"), $this->hub, $ip);
+				$this->server->getScheduler()->scheduleDelayedTask($this->mutes[$ip], (int) ($length * 1200));
+				$this->mute($ip);
+				$this->server->broadcast("$ip has been muted for $length minutes by ".$isr->getName(), Server::BROADCAST_CHANNEL_ADMINISTRATIVE);
+				$this->server->broadcast($target->getDisplayName()." has been muted for $length minutes", $this->getWriteChannel($target));
+				return true;
+			case "unmute":
+				if(!isset($args[0])){
+					return "Usage: /unmute <player|IP>";
+				}
+				if(preg_replace("#[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}#", "", $name = $args[0]) === ""){
+					$ip = $name;
+				}
+				else{
+					$player = $this->server->getPlayer($name);
+					if(!($player instanceof Player)){
+						return "Player not found!";
+					}
+					$ip = $player->getAddress();
+				}
+				if(!isset($this->mutes[$ip])){
+					return "$ip is not muted.";
+				}
+				$this->mutes[$ip]->cancel();
+				$this->server->broadcast("$ip has been unmuted by ".$isr->getName(), Server::BROADCAST_CHANNEL_ADMINISTRATIVE);
+				return "$ip has been unmuted.";
 		}
 		return true;
 	}
 	public function parseChannel(Player $player, $chan){
-		$t = $this->hub->getDb($player)->get("team");
-		$s = $this->hub->getSession($player);
-		$spleef = ($s === HubPlugin::SPLEEF);
-		switch(strtolower($chan)){
-			case "general":
-			case "gen":
-			case "g":
-			case "public":
-			case "pub":
-			case "p":
-				$ch = "public";
-				break;
-			case "team":
-			case  "t":
-				$ch = $t;
-				break;
-			case "arena":
-			case "a":
-			case "at":
-			case "arenateam":
-			case "teamarena":
-			case "ta":
-				if($spleef){
-					$ch = Spleef::get()->getArena($player);
-					if($ch !== false){
-						$ch = "s".$ch.((stripos($chan, "t") !== false) ? (".t".$t):"");
-						break;
-					}
-				}
-				$player->sendMessage("You are not in a spleef arena! Your chat channel will be set to the default one in your minigame.");
-				$ch = $this->getMgClass($player);
-				eval("return $ch::get()->getDefaultChatChannel(\$player, \$t);");
-				break;
-			default:
-				$player->sendMessage("Unidentified chat channel identifier $chan. Your chat channel will be set to the default one in your minigame.");
-				$ch = $this->getMgClass($player);
-				eval("return $ch::get()->getDefaultChatChannel(\$player, \$t);");
-				break;
-		}
-		return "legionpe.chat.".$this->getMgClass($player, true, true).$ch;
+
 	}
 	public function addCoins(Player $player, $coins, $reason = "you-guess-why", $silent = false){
 		$this->hub->getDb($player)->set("coins", $this->hub->getDb($player)->get("coins") + $coins);
