@@ -50,14 +50,15 @@ require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."Team.php");
 class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 	const CURRENT_VERSION = 0;
 	const V_INITIAL = 0;
-	const REGISTER	= 0b00010;
-	const HUB		= 0b01000; // I consider hub as a NOBLE minigame
-	const SHOP		= 0b01001; // another NOBLE minigame
-	const PVP		= 0b01100; // KitPvP
-	const PK		= 0b01101; // Parkour
-	const SPLEEF	= 0b01110; // Touch-Spleef
-	const CTF		= 0b01111; // Capture The Flag
-	// const BG		= 0b10000; // Build and Guess
+	const REGISTER = 0b00010;
+	const HUB = 0b01000; // I consider hub as a NOBLE minigame
+	const SHOP = 0b01001; // another NOBLE minigame
+	const PVP = 0b01100; // KitPvP
+	const PK	 = 0b01101; // Parkour
+	const SPLEEF = 0b01110; // Touch-Spleef
+	const CTF = 0b01111; // Capture The Flag
+	// const BG = 0b10000; // Build and Guess
+	const INFECTED  = 0b10001;
 	const ON		= 0b10111; // Maximum online session ID
 	const LOGIN		= 0b11000;
 	const LOGIN_MAX	= 0b11111;
@@ -128,10 +129,9 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		$this->initObjects();
 		echo ".";
 		$this->registerHandles();
-		echo ".";
 		$this->initCmds();
-		echo ".";
 		$this->initRanks();
+//		$this->initSMG();
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
 		var_export($this->getServer()->getPluginManager()->getPermissions());
 	}
@@ -319,6 +319,13 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 			$cmd->setPermission("legionpe.cmd.rules");
 			$this->getServer()->getCommandMap()->register("legionpe", $cmd);
 		}
+		if("mgs" === "mgs"){
+			$cmd = new PluginCmdExt("mgs", $this, $this->mgMenu);
+			$cmd->setUsage("/mgs");
+			$cmd->setDescription("Choose minigames in your inventory");
+			$cmd->setPermission("legionpe.cmd.mgs");
+			$cmd->register($this->getServer()->getCommandMap());
+		}
 		if(true){
 			$cmd = new PluginCommand("eval", $this);
 			$cmd->setUsage("/eval <code ...>");
@@ -453,7 +460,7 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 	 */
 	public function onJoin(PlayerJoinEvent $event){ // open database, check password (decide (registry wizard / IP auth / password auth))
 		$p = $event->getPlayer();
-		Hub::get()->mute($p);
+		Hub::get()->mute($p->getAddress(), PHP_INT_MAX);
 		$event->setJoinMessage("");
 		$this->openDb($p);
 		$this->atts[spl_object_hash($p)] = $p->addAttachment($this);
@@ -615,7 +622,6 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		}
 	}
 	public function onRegistered(Player $p){ // set session to self::HUB and choose team, on registry success
-		Hub::get()->mute($p);
 		$p->teleport(Loc::chooseTeamStd());
 		$this->sessions[$p->getID()] = self::HUB;
 		$p->sendMessage("Please select a team.\nSome teams are unselectable because they are too full.\nIf you insist to join those teams, come back later.");
@@ -628,6 +634,8 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 			$p->addAttachment($this, "legionpe.cmd.eval", true);
 		}
 		Hub::get()->setWriteChannel($p);
+		Hub::get()->unmute($p->getAddress());
+		Hub::get()->addReadChannel($p);
 		$this->sessions[$p->getID()] = self::HUB;
 		$p->sendMessage("You have successfully logged in into LegionPE!");
 		$s = Loc::spawn();
@@ -650,33 +658,22 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 			case "world_ctf":
 				$session = self::CTF;
 				break;
-			case "world_shops":
-				$session = self::SHOP;
-				break;
 			default:
 				$session = self::HUB;
 				break;
 		}
 		if($this->sessions[$player->getID()] !== $session){
-			$class = Hub::get()->getMgClass($player);
-			if(is_string($class)){
-				/** @var \pemapmodder\legionpe\mgs\MgMain $instance */
-				$instance = null; // just to silent PHPStorm ;)
-				eval("\$instance = \$class::get();");
-				if(is_callable(array($instance, "onQuitMg"))){
-					$instance->onQuitMg($player);
-				}
+			$old = Hub::get()->getMgClass($player);
+			if(is_callable(array($old, "onQuitMg"))){
+				$old->onQuitMg($player);
 			}
 			if(!$silent){
 				console("[NOTICE] Updated session of ".$player->getName()." (display name ".$player->getDisplayName().") from ".$this->sessions[$player->getID()]." to $session. This is supposed to be a bug.");
 			}
 			$this->sessions[$player->getID()] = $session;
-			$class = Hub::get()->getMgClass($player);
-			if(is_string($class)){
-				$instance = $class::get();
-				if(is_callable(array($instance, "onJoinMg"))){
-					$instance->onJoinMg($player);
-				}
+			$instance = Hub::get()->getMgClass($player);
+			if(is_callable(array($instance, "onJoinMg"))){
+				$instance->onJoinMg($player);
 			}
 		}
 	}

@@ -11,7 +11,6 @@ use pemapmodder\legionpe\mgs\ctf\Main as CTF;
 
 use pemapmodder\utils\CallbackPluginTask;
 use pocketmine\command\CommandSender;
-use pocketmine\event\entity\EntityMoveEvent;
 use pocketmine\event\player\PlayerCommandPreprocessEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -32,7 +31,7 @@ class Hub implements CmdExe, Listener{
 	public $server;
 	public $teleports = array();
 	/** @var CallbackPluginTask[] */
-	public $mutes = [];
+	private $mutes = [];
 	protected $channels;
 	public static function defaultChannels(){
 		$r = array(
@@ -79,6 +78,7 @@ class Hub implements CmdExe, Listener{
 		$this->server = Server::getInstance();
 		$this->hub = HubPlugin::get();
 		$root = DP::registerPermission(new Perm("legionpe.chat", "Allow reading chat", Perm::DEFAULT_FALSE), $this->server->getPluginManager()->getPermission("legionpe"));
+		DP::registerPermission(new Perm("legionpe.chat.monitor", "Allow monitoring chat", Perm::DEFAULT_FALSE), $root);
 		foreach(static::defaultChannels() as $channel){
 			DP::registerPermission(new Perm($channel.".read", "Allow reading chat from $channel", Perm::DEFAULT_FALSE), $root);
 		}
@@ -88,6 +88,7 @@ class Hub implements CmdExe, Listener{
 	/**
 	 * @param PlayerChatEvent $evt
 	 * @priority HIGHEST
+	 * @ignoreCancelled true
 	 */
 	public function onChat(PlayerChatEvent $evt){
 		$p = $evt->getPlayer();
@@ -101,9 +102,9 @@ class Hub implements CmdExe, Listener{
 			$issuer->sendMessage("Please run this command in-game.");
 			return true;
 		}
-		$class = $this->getMgClass($issuer);
-		$class::get()->onQuitMg($issuer, $args);
-		$perm = $class::get()->getPermission();
+		$mg = $this->getMgClass($issuer);
+		$mg->onQuitMg($issuer, $args);
+		$perm = $mg->getPermission();
 		$this->hub->getPermAtt($issuer)->setPermission($perm, false);
 		return true;
 	}
@@ -113,11 +114,11 @@ class Hub implements CmdExe, Listener{
 			return true;
 		}
 		$class = $this->getMgClass($issuer);
-		if(!is_string($class)){
+		if(!($class instanceof MgMain)){
 			$issuer->sendMessage("You are not in a minigame!");
 		}
 		else{
-			$msg = $class::get()->getStats($issuer, $args);
+			$msg = $class->getStats($issuer, $args);
 			if(!is_string($msg)){
 				$issuer->sendMessage("Stats is unavailable here.");
 			}
@@ -127,6 +128,12 @@ class Hub implements CmdExe, Listener{
 		}
 		return true;
 	}
+	/**
+	 * @param Player $player
+	 * @param bool $acceptNonMg
+	 * @param bool $simple
+	 * @return bool|Hub|MgMain
+	 */
 	public function getMgClass(Player $player, $acceptNonMg = true, $simple = false){
 		if($acceptNonMg and $this->hub->getSession($player) === HubPlugin::HUB or $this->hub->getSession($player) === HubPlugin::SHOP){
 			if($simple){
@@ -136,21 +143,18 @@ class Hub implements CmdExe, Listener{
 		}
 		switch($this->hub->getSession($player)){
 			case HubPlugin::PVP:
-				$out = "pvp\\Pvp";
-				break;
+				return Pvp::get();
 			case HubPlugin::PK:
-				$out = "pk\\Parkour";
-				break;
+				return Parkour::get();
 			case HubPlugin::SPLEEF:
-				$out = "spleef\\Main";
-				break;
-			case HubpLugin::CTF:
-				$out = "ctf\\Main";
-				break;
+				return Spleef::get();
+			case HubPlugin::CTF:
+				return CTF::get();
+			case HubPlugin::HUB:
+				return $this;
 			default:
 				return false;
 		}
-		return $simple ? (strstr($out, "\\", true)."."):"\\pemapmodder_dep\\legionpe\\mgs\\$out";
 	}
 	public function onQuit(PlayerQuitEvent $event){
 		if(($s = $this->hub->sessions[$event->getPlayer()->getID()]) > HubPlugin::HUB and $s <= HubPlugin::ON)
@@ -196,28 +200,7 @@ class Hub implements CmdExe, Listener{
 		if(HubPlugin::get()->getRank($p) !== "staff")
 			$evt->setCancelled(true);
 	}
-//	public function onMove(EntityMoveEvent $evt){
-//		$p = $evt->getEntity();
-//		if(!($p instanceof Player)){
-//			return;
-//		}
-//		if(time() - ((int) @$this->teleports[$p->getID()]) <= 3){
-//			return;
-//		}
-//		if(RL::enterPvpPor()->isInside($p)){
-//			$this->joinMg($p, Pvp::get());
-//		}
-//		elseif(RL::enterPkPor()->isInside($p)){
-//			$this->joinMg($p, Parkour::get());
-//		}
-//		elseif(RL::enterCtfPor()->isInside($p)){
-//			$this->joinMg($p, CTF::get());
-//		}
-//		elseif(RL::enterSpleefPor()->isInside($p)){
-//			$this->joinMg($p, Spleef::get());
-//		}
-//	}
-	protected function joinMg(Player $p, MgMain $mg){
+	public function joinMg(Player $p, MgMain $mg){
 		$TID = $this->hub->getDb($p)->get("team");
 		if(($reason = $mg->isJoinable($p, $TID)) === true){
 			$this->server->getScheduler()->scheduleDelayedTask(new CallbackPluginTask(array($p, "teleport"), $this->hub, $mg->getSpawn($p, $TID)), 40);
@@ -278,11 +261,12 @@ class Hub implements CmdExe, Listener{
 		}
 	}
 	public function onCommand(Issuer $isr, Command $cmd, $lbl, array $args){
-		$output = "";
 		switch($cmd->getName()){
 			case "chat":
+				// TODO
 				break;
 			case "channel":
+				// TODO
 				break;
 			case "mute":
 				if(!isset($args[0])){
@@ -297,9 +281,9 @@ class Hub implements CmdExe, Listener{
 					$length = floatval($length);
 				}
 				$ip = $target->getAddress();
+				$this->mute($ip, (int) ($length * 1200));
 				$this->mutes[$ip] = new CallbackPluginTask(array($this, "unmute"), $this->hub, $ip);
 				$this->server->getScheduler()->scheduleDelayedTask($this->mutes[$ip], (int) ($length * 1200));
-				$this->mute($ip);
 				$this->server->broadcast("$ip has been muted for $length minutes by ".$isr->getName(), Server::BROADCAST_CHANNEL_ADMINISTRATIVE);
 				$this->server->broadcast($target->getDisplayName()." has been muted for $length minutes", $this->getWriteChannel($target));
 				return true;
@@ -320,11 +304,17 @@ class Hub implements CmdExe, Listener{
 				if(!isset($this->mutes[$ip])){
 					return "$ip is not muted.";
 				}
-				$this->mutes[$ip]->cancel();
+				$this->unmute($ip);
 				$this->server->broadcast("$ip has been unmuted by ".$isr->getName(), Server::BROADCAST_CHANNEL_ADMINISTRATIVE);
 				return "$ip has been unmuted.";
 		}
 		return true;
+	}
+	public function mute($ip, $ticks){
+
+	}
+	public function unmute($ip){
+
 	}
 	public function parseChannel(Player $player, $chan){
 
