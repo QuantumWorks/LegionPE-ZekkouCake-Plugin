@@ -66,7 +66,14 @@ class Pvp extends MgMain implements CmdExe, Listener{
 				$this->equip($isr);
 				return "PvP kit given!";
 			case "class":
-				// TODO
+				$classes = $this->hub->getConfig()->get("kitpvp")["classes"][$this->hub->getRank($isr)];
+				if(!in_array($args[0], $classes)){
+					return "You don't have access to this class!";
+				}
+				$db = $this->hub->getDb($isr);
+				$pvp = $db->get("kitpvp");
+				$pvp["class"] = $args[0];
+				return "Your class has been set to $args[0].";
 		}
 		return true;
 	}

@@ -42,10 +42,9 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * PvP plugin
  * /kills [top]
  * /pvp
+ * /class
 
 ## Tasks in progress
-* PvP plugin
- * /class
 * DIFF pocketmine entities?
 * Minigame inheritance
 * _**MERGE!**_ Merge Lambo's code.
@@ -81,18 +80,18 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 
 ## Done
 * Fixed syntax errors :)
-* Thank you PHPStorm!
+ * Thank you PHPStorm!
 
 # Permissions
 LegoinPE:
 * legionpe.mg
- * legionpe.mg.**.join
+ * legionpe.mg.xx.join
 * legionpe.cmd
  * legionpe.cmd.auth
  * legionpe.cmd.players (remove this?)
   * legionpe.cmd.players.show
   * leginope.cmd.players.hide
- * legionpe.cmd.mg.**.***
+ * legionpe.cmd.mg.xx.xxx
 
 PvP:
 
@@ -123,6 +122,6 @@ Chat channels:
 * IDS
  * SID: SpleefArena ID
  * TID: Team ID
- * CID: Client ID
+ * CID: Client ID (entity ID of a player)
  * EID: Entity ID
  * PID: Packet ID

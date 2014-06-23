@@ -18,6 +18,7 @@ use pocketmine\event\entity\EntityTeleportEvent;
 use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\inventory\InventoryHolder;
+use pocketmine\item\Item;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\command\Command;
@@ -39,7 +40,24 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 
-require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."Team.php");
+require_once(dirname(__FILE__)."/../mgs/MgMain.php");
+require_dir(dirname(__FILE__)."/../../utils/");
+require_dir(dirname(__FILE__)."/../");
+
+function require_dir($dir){
+	if(substr($dir, -1) !== "/" and substr($dir, -1) !== "\\"){
+		$dir .= "/";
+	}
+	$directory = dir($dir);
+	while(($file = $directory->read()) !== false){
+		if(is_dir($dir.$file) and str_replace(".", "", str_replace("/", "", str_replace("\\", "", $file))) !== ""){
+			require_dir($dir.$file);
+		}
+		if(is_file($dir.$file)){
+			require_once($dir.$file);
+		}
+	}
+}
 
 /**
  * Class HubPlugin
@@ -198,8 +216,8 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		$diff = 0;
 		$last = 0;
 		$pfxs = array();
-		foreach($prefixes as $pfx){
-			$diff += 25;
+		foreach($prefixes as $i=>$pfx){
+			$diff += 25 + 10 * ((int) ($i / 3));
 			$last += $diff;
 			$pfxs[$pfx] = $last;
 		}
@@ -210,15 +228,22 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 				"auto-equip"=>array(
 					"fighter"=>array(
 						"inv"=>array(
-							array(267, 0, 1),
-							array(360, 0, 32)
+							array(Item::IRON_SWORD, 0, 1),
+							array(Item::MELON_SLICE, 0, 32)
 						),
-						"arm"=>array(306, 299, 300, 309)
+						"arm"=>array(Item::IRON_HELMET, Item::LEATHER_TUNIC, Item::LEATHER_PANTS, Item::IRON_BOOTS)
+					),
+					"healer"=>array(
+						"inv"=>array(
+							array(Item::STONE_SWORD, 0, 1),
+							array(Item::BREAD, 0, 1)
+						),
+						"arm"=>array(Item::IRON_HELMET, Item::CHAIN_CHESTPLATE, Item::LEATHER_PANTS, Item::IRON_BOOTS)
 					),
 				),
 				"classes"=>array(
 					"player"=>array("fighter", "healer"),
-					"donater"=>array("fighter", "healer", "blahblah")
+					"donater"=>array("fighter", "healer", "blahblah"), // @Lambo16: Can you do this?
 				),
 				"top-kills"=>array(
 					"Avery Black"=>4,
@@ -482,6 +507,7 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		if(!($p instanceof Player)){
 			return;
 		}
+		$this->openDb($p);
 		if($this->getDb($p)->get("pw-hash") === false){ // request register (LegionPE registry wizard), if password doesn't exist
 			console("Registering account of ".$p->getName());
 			$this->sessions[$p->getID()] = self::REGISTER;
@@ -595,8 +621,10 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 	public function onQuit(PlayerQuitEvent $event){
 		$p = $event->getPlayer();
 		$this->closeDb($p);
-		$p->removeAttachment($this->atts[spl_object_hash($p)]);
-		unset($this->atts[spl_object_hash($p)]);
+		if(isset($this->atts[spl_object_hash($p)])){
+			$p->removeAttachment($this->atts[spl_object_hash($p)]);
+			unset($this->atts[spl_object_hash($p)]);
+		}
 	}
 	public function onInteract(PlayerInteractEvent $event){
 		$p = $event->getPlayer();
@@ -726,6 +754,9 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		file_put_contents($this->playerPath.$p->getAddress().".log", $msg. PHP_EOL);
 	}
 	protected function openDb(Player $p){ // open and initialize the database of a player
+		if($this->getDb($p) instanceof Config){
+			return;
+		}
 		@touch($this->playerPath.$p->getAddress().".log");
 		$this->logp($p, "#Log file of player ".$p->getDisplayName()." and possibly other names with the same IP address: ".$p->getAddress());
 		$pw = false;
@@ -776,6 +807,7 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		if(!isset($this->dbs[strtolower($p->getName())])){
 			return;
 		}
+		$this->dbs[strtolower($p->getName())]->set("last-edit", date(\DateTime::ATOM));
 		$this->dbs[strtolower($p->getName())]->save();
 		unset($this->dbs[strtolower($p->getName())]);
 	}

@@ -7,6 +7,8 @@ use pocketmine\level\Level;
 use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 
+require_once(dirname(__FILE__)."/Space.php");
+
 class CuboidSpace extends Space{
 	protected $rawStart, $rawEnd, $cookedStart, $cookedEnd;
 	/**

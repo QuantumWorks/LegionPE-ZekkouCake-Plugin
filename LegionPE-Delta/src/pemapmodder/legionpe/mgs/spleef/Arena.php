@@ -190,7 +190,7 @@ class Arena extends PluginTask{
 		$data["unwons"]++;
 		$db->set("spleef", $data);
 		$db->save();
-		HubPlugin::get()->getTeam($player)["points"] -= 2;
+		Team::addPoints($player, -2);
 		$this->checkPlayers();
 		return true;
 	}
@@ -230,7 +230,7 @@ class Arena extends PluginTask{
 			}
 			else{
 				$player->sendMessage("You mined a hole to fall ".$player->getDisplayName().". 2 team points to you!");
-				HubPlugin::get()->getTeam($team)["points"] += 2;
+				Team::addPoints($team, 2);
 				Hub::get()->addCoins($player, 2, "being awarded by stupid spleef hole guesser");
 			}
 		}
@@ -261,7 +261,7 @@ class Arena extends PluginTask{
 				$db->save();
 			}
 			$this->broadcast("Each of the remaining players earns your team 10 points!");
-			HubPlugin::get()->getTeam($team[0])["points"] += $pts;
+			Team::addPoints($team[0], $pts);
 			$this->end("Only player(s) of one team left.");
 		}
 		$two = true;
