@@ -8,7 +8,9 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * Core commands
  * /show and /hide
  * /auth
- * /quit (Minigame implementation)
+ * /quit
+ * /mgs (Inventory-GUI type of choosing minigames)
+* Hub portals deprecated
 * Auth API
  * Main plugin array field $sessions
  * Non-logged-in action blockage: pre-login world for that?
@@ -26,11 +28,7 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
  * /stats
 * Prefix
 * Amai Beetroot data conversion
- * PvP items ans armor config conversion aborted and will not be done
-* PvP plugin
- * /kills [top]
- * /pvp
- * /class
+ * PvP items and armor config conversion aborted and will not be done
 * Permissions
 * Spleef
  * Commands to leave and join
@@ -41,18 +39,21 @@ This repo includes the core utils and commands, auth, portals, 4 minigames (KitP
 * Chat channels
  * rewriting into read permissions and property-array-saved write channels
  * /chat, /mute and /unmute - chat channels
+* PvP plugin
+ * /kills [top]
+ * /pvp
 
 ## Tasks in progress
-* More core utils
- * What exactly are they? #_#
+* PvP plugin
+ * /class
 * DIFF pocketmine entities?
-* CTF plugin
- * later... where is the world? Hello @MadMckMax?
 * Minigame inheritance
-* Coins and shops!
+* _**MERGE!**_ Merge Lambo's code.
+* @_@ not debugging... but debugging of course...
 
 ## Tasks TODO
-* @_@ not debugging... but debugging of course...
+* CTF plugin
+ * later... where is the world? Hello @MadMckMax?
 
 ## Tasks low-priority/optional TODO
 * Build and Guess (from Draw stuffs from MCPC)

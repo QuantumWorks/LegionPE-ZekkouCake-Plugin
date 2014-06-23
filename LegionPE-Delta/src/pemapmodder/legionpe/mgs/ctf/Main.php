@@ -97,6 +97,10 @@ class Main extends MgMain{
 		}
 		return $out;
 	}
+	/**
+	 * @param DataPacket $packet
+	 * @param bool|Player|int $exception
+	 */
 	public function broadcastPacket(DataPacket $packet, $exception = false){
 		if($exception instanceof Player){
 			foreach($this->getAllPlayers() as $p){

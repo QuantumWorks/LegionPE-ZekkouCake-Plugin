@@ -124,7 +124,6 @@ class Pvp extends MgMain implements CmdExe, Listener{
 		return $output;
 	}
 	public function onRespawn(PlayerRespawnEvent $event){
-		/** @var Player $p */
 		$p = $event->getPlayer();
 		if(@$this->pvpDies[$p->getID()] !== true)
 			return;
