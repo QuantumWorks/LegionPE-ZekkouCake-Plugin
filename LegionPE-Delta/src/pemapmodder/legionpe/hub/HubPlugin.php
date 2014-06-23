@@ -9,6 +9,7 @@ use pemapmodder\legionpe\mgs\pvp\Pvp;
 use pemapmodder\legionpe\mgs\pk\Parkour as Pk;
 use pemapmodder\legionpe\mgs\spleef\Main as Spleef;
 use pemapmodder\legionpe\mgs\ctf\Main as CTF;
+use pemapmodder\legionpe\mgs\infected\Main as Infected;
 //use pemapmodder\smg\SMG;
 use pemapmodder\utils\CallbackPluginTask;
 use pemapmodder\utils\CallbackEventExe;
@@ -133,7 +134,12 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		$this->initRanks();
 //		$this->initSMG();
 		echo TextFormat::toANSI(TextFormat::GREEN." Done! (".(1000 * (microtime(true) - $time))." ms)").PHP_EOL;
-		var_export($this->getServer()->getPluginManager()->getPermissions());
+		$perms = $this->getServer()->getPluginManager()->getPermissions();
+		$dump = [];
+		foreach($perms as $key => $perm){
+			$dump[$key] = ["description" => $perm->getDescription(), "children" => $perm->getChildren(), "default value" => $perm->getDefault()];
+		}
+		file_put_contents($this->getServer()->getDataPath()."perms-dump.yml", yaml_emit($dump));
 	}
 	public function onDisable(){
 		console(TextFormat::AQUA."Finalizing Hub", false);
@@ -161,6 +167,7 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		Pk::init();
 		Spleef::init();
 		CTF::init();
+		Infected::init();
 		$this->mgMenu = new MinigameMenu($this);
 //		$this->SMG = new SMG($this);
 	}
@@ -766,6 +773,9 @@ class HubPlugin extends PluginBase implements Listener, InventoryHolder{
 		$this->dbs[strtolower($p->getName())] = $config;
 	}
 	protected function closeDb(Player $p){ // save and finalize the database of a player
+		if(!isset($this->dbs[strtolower($p->getName())])){
+			return;
+		}
 		$this->dbs[strtolower($p->getName())]->save();
 		unset($this->dbs[strtolower($p->getName())]);
 	}
