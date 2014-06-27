@@ -19,7 +19,8 @@ namespace pemapmodder\legionpe\hub {
 			if(is_int($i)) $i &= 0b11;
 			elseif($i instanceof Player) $i = HubPlugin::get()->getDb($i)->get("team");
 			else{
-				trigger_error("Unexpected argument 1 (".print_r($i, true).") passed to ".get_class()."::evalI($i)", E_USER_ERROR);
+				trigger_error("Unexpected argument 1 (".var_export($i, true).") passed to ".get_class()."::evalI($i)", E_USER_ERROR);
+				\pocketmine\error_handler(E_WARNING, "Unexpected argument 1 passed to Team::evalI()", __FILE__, 23);
 				return null;
 			}
 			return $i;
