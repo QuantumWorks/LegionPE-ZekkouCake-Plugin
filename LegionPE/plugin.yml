@@ -1,0 +1,8 @@
+name: LegionPE
+authors: [Lambo, PEMapModder]
+version: delta 5
+api: [1.0.0]
+main: legionpe\Main
+load: STARTUP
+website: https://github.com/mcpesrccode/LegionPE-ZekkouCake-Plugin
+prefix: LegionPE
