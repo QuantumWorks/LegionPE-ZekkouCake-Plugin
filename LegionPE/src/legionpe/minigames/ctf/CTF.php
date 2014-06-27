@@ -16,4 +16,7 @@ class CTF extends Minigame{
 	public function getSpawn(){
 		// TODO
 	}
+	public function ownLevel($world){
+		return in_array($world, ["world_tmp_ctf"]);
+	}
 }

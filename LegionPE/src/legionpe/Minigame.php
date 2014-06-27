@@ -10,4 +10,5 @@ abstract class Minigame implements Listener{
 		return Main::CHAT_CHANNEL_ROOT.".".strtolower($this->getName()).".global";
 	}
 	public abstract function getSpawn();
+	public abstract function ownLevel($levelName);
 }

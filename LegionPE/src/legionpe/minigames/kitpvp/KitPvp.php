@@ -15,4 +15,7 @@ class KitPvp extends Minigame{
 	public function getSpawn(){
 		// TODO
 	}
+	public function ownLevel($world){
+		return in_array($world, ["world_pvp"]);
+	}
 }

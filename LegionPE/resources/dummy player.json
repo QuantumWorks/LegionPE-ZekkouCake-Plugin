@@ -1,0 +1,27 @@
+{
+    "team": false,
+    "coins": false,
+    "case-usernames": [
+    ],
+    "password": false,
+    "ip-auth": false,
+    "ips": [
+    ],
+    "last-join": false,
+    "last-auth": false,
+    "kitpvp": {
+
+    },
+    "parkour": {
+
+    },
+    "spleef": {
+
+    },
+    "ctf": {
+
+    },
+    "infected": {
+
+    }
+}
